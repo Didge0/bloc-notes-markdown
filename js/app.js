@@ -3,6 +3,7 @@
     const editorView = document.getElementById("editorView");
     const editorHeader = document.getElementById("editorHeader");
     const togglePreviewButton = document.getElementById("btnTogglePreview");
+    const actionsMenu = document.getElementById("editorActionsMenu");
     const editor = document.getElementById("editor");
     const preview = document.getElementById("preview");
     const fileNameInput = document.getElementById("fileName");
@@ -346,6 +347,15 @@
     document.getElementById("btnDownloadMd").addEventListener("click", downloadMarkdown);
     document.getElementById("btnDownloadHtml").addEventListener("click", downloadHtml);
     document.getElementById("btnPrint").addEventListener("click", () => window.print());
+    actionsMenu.addEventListener("click", event => {
+        if (event.target.closest("button")) actionsMenu.open = false;
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && actionsMenu.open) {
+            actionsMenu.open = false;
+            actionsMenu.querySelector("summary").focus();
+        }
+    });
 
     (async () => {
         if (typeof window.showDirectoryPicker !== "function") {

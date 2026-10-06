@@ -16,6 +16,15 @@
             <button id="btnBackHome" class="btn btn-secondary" type="button" title="Enregistrer et revenir à l’accueil">← Retour</button>
             <button id="btnTogglePreview" class="btn btn-secondary preview-toggle" type="button" aria-pressed="false" title="Afficher l’aperçu seul"><span aria-hidden="true">👁</span><span class="preview-toggle-label">Aperçu seul</span></button>
             <input type="text" id="fileName" placeholder="Nom de votre note" title="Fichier Markdown ouvert" aria-label="Nom de la note" readonly>
+            <details class="actions-menu" id="editorActionsMenu">
+                <summary class="btn btn-secondary">Actions <span aria-hidden="true">▾</span></summary>
+                <div class="actions-menu-panel">
+                    <button id="btnOpenFile" class="btn btn-secondary" type="button" title="Importer un fichier Markdown">Importer .md</button>
+                    <button id="btnDownloadMd" class="btn btn-secondary" type="button" title="Télécharger une copie Markdown">Télécharger .md</button>
+                    <button id="btnDownloadHtml" class="btn btn-secondary" type="button" title="Télécharger en HTML">Télécharger .html</button>
+                    <button id="btnPrint" class="btn btn-secondary" type="button" title="Imprimer ou exporter en PDF">Imprimer / PDF</button>
+                </div>
+            </details>
         </div>
     </header>
 
@@ -51,12 +60,6 @@
                 </section>
             </div>
 
-            <footer class="button-bar">
-                <button id="btnOpenFile" class="btn btn-secondary" title="Importer un fichier Markdown">Importer .md</button>
-                <button id="btnDownloadMd" class="btn btn-secondary" title="Télécharger une copie Markdown">Télécharger .md</button>
-                <button id="btnDownloadHtml" class="btn btn-secondary" title="Télécharger en HTML">Télécharger .html</button>
-                <button id="btnPrint" class="btn btn-secondary" title="Imprimer ou exporter en PDF">Imprimer / PDF</button>
-            </footer>
         </section>
     </main>
 

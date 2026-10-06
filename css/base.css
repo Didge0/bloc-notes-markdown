@@ -23,6 +23,9 @@ body {
 }
 
 header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -163,6 +166,25 @@ header h1 { color: var(--color-primary); font-size: 1.8rem; font-weight: 700; }
 .editor-header .btn { white-space: nowrap; }
 .preview-toggle { display: inline-flex; align-items: center; gap: .45rem; }
 .preview-toggle [aria-hidden="true"] { font-size: 1.05rem; line-height: 1; }
+.actions-menu { position: relative; flex: 0 0 auto; margin-left: auto; }
+.actions-menu summary { list-style: none; cursor: pointer; }
+.actions-menu summary::-webkit-details-marker { display: none; }
+.actions-menu summary span { margin-left: .35rem; }
+.actions-menu-panel {
+    position: absolute;
+    top: calc(100% + .5rem);
+    right: 0;
+    z-index: 30;
+    display: grid;
+    min-width: 220px;
+    gap: .35rem;
+    padding: .5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-white);
+    box-shadow: var(--shadow);
+}
+.actions-menu-panel .btn { width: 100%; text-align: left; }
 .preview-only .editor-panel { display: none; }
 .preview-only .preview-panel { flex: 1; }
 .preview-only .preview-content { min-height: calc(100vh - 310px); }
