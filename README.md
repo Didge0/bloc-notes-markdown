@@ -37,6 +37,8 @@ bloc-notes-markdown/
 
 - Édition Markdown avec aperçu en direct et compteur de mots
 - Indentation avec `Tab` et désindentation avec `Maj+Tab` dans l’éditeur
+- Continuation automatique des puces, numéros et tâches avec `Entrée`; une nouvelle tâche commence décochée
+- Sortie d’une liste avec `Entrée` ou `Retour arrière` sur un marqueur vide
 - Écran d’accueil listant les fichiers `.md` du dossier choisi
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
 - Bouton Retour qui attend l’enregistrement avant de revenir à la liste

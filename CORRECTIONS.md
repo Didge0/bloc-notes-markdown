@@ -21,6 +21,7 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Prise en charge des listes à puces, numérotées et des cases à cocher annoncées dans le README
 - Échappement des contenus et des attributs, avec refus des protocoles de lien non autorisés
 - Sauvegarde automatique après modification du contenu ou du nom de note
+- Continuation automatique des listes à la touche Entrée et sortie propre avec Entrée ou Retour arrière sur un marqueur vide
 - Gestion des erreurs de stockage et de lecture de fichier avec un message de statut
 - Conservation de la clé `blocNotes` et du format `{ content, fileName }` pour récupérer les données existantes
 - Remplacement de la page de test descriptive par des tests qui exécutent le parseur

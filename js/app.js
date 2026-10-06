@@ -94,6 +94,61 @@
         }
     }
 
+    function handleEditorEnter(event) {
+        if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+        if (editor.selectionStart !== editor.selectionEnd) return;
+
+        const value = editor.value;
+        const caret = editor.selectionStart;
+        const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+        const nextLineBreak = value.indexOf("\n", caret);
+        const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
+        if (caret !== lineEnd) return;
+
+        const line = value.slice(lineStart, lineEnd);
+        const emptyTask = line.match(/^(\s*[-*+]\s+\[[ xX]\]\s*)$/);
+        const emptyOrdered = line.match(/^(\s*)(\d+)([.)])\s*$/);
+        const emptyBullet = line.match(/^\s*[-*+]\s*$/);
+        if (emptyTask || emptyOrdered || emptyBullet) {
+            event.preventDefault();
+            editor.setRangeText("", lineStart, lineEnd, "end");
+            editor.dispatchEvent(new Event("input", { bubbles: true }));
+            return;
+        }
+
+        const task = line.match(/^(\s*[-*+]\s+)\[[ xX]\]\s+.*$/);
+        const ordered = line.match(/^(\s*)(\d+)([.)])\s+.*$/);
+        const bullet = line.match(/^(\s*[-*+]\s+).*$/);
+        let continuation = "";
+
+        if (task) continuation = `${task[1]}[ ] `;
+        else if (ordered) continuation = `${ordered[1]}${Number(ordered[2]) + 1}${ordered[3]} `;
+        else if (bullet) continuation = bullet[1];
+        else return;
+
+        event.preventDefault();
+        editor.setRangeText(`\n${continuation}`, caret, caret, "end");
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    function handleEditorBackspace(event) {
+        if (event.key !== "Backspace" || editor.selectionStart !== editor.selectionEnd) return;
+
+        const value = editor.value;
+        const caret = editor.selectionStart;
+        const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
+        const nextLineBreak = value.indexOf("\n", caret);
+        const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
+        if (caret !== lineEnd) return;
+
+        const line = value.slice(lineStart, lineEnd);
+        if (!/^(?:\s*[-*+]\s+\[[ xX]\]\s*|\s*[-*+]\s*|\s*\d+[.)]\s*)$/.test(line)) return;
+
+        event.preventDefault();
+        editor.setRangeText("", lineStart, lineEnd, "end");
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
     function handleEditorTab(event) {
         if (event.key !== "Tab") return;
         event.preventDefault();
@@ -377,6 +432,8 @@
         }
     }
 
+    editor.addEventListener("keydown", handleEditorEnter);
+    editor.addEventListener("keydown", handleEditorBackspace);
     editor.addEventListener("keydown", handleEditorTab);
     preview.addEventListener("change", updateTaskFromPreview);
     editor.addEventListener("input", () => {
