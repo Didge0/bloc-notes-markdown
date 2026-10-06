@@ -22,9 +22,8 @@
             const transaction = database.transaction("handles", mode);
             const store = transaction.objectStore("handles");
             let result = handle;
-            if (mode === "readwrite") {
-                store.put(handle, directoryKey);
-            } else {
+            if (mode === "readwrite") store.put(handle, directoryKey);
+            else {
                 const request = store.get(directoryKey);
                 request.onsuccess = () => { result = request.result || null; };
             }
@@ -44,18 +43,7 @@
                 content: typeof parsed.content === "string" ? parsed.content : "",
                 fileName: typeof parsed.fileName === "string" ? parsed.fileName : "Ma note"
             };
-        } catch {
-            return null;
-        }
-    }
-
-    function save(note) {
-        try {
-            localStorage.setItem(storageKey, JSON.stringify(note));
-            return true;
-        } catch {
-            return false;
-        }
+        } catch { return null; }
     }
 
     function migrationHandled() {
@@ -74,7 +62,10 @@
         loadDirectory: () => storeHandle("readonly"),
         migrationHandled,
         markMigrationHandled,
-        save,
+        save: note => {
+            try { localStorage.setItem(storageKey, JSON.stringify(note)); return true; }
+            catch { return false; }
+        },
         saveDirectory: handle => storeHandle("readwrite", handle)
     };
 })();

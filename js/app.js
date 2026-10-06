@@ -37,47 +37,11 @@
     }
 
     function showEditor() {
-        homeView.hidden = true;
-        editorView.hidden = false;
-        editorHeader.hidden = false;
-        editorView.classList.remove("preview-only");
-        togglePreviewButton.setAttribute("aria-pressed", "false");
-        togglePreviewButton.title = "Afficher l’aperçu seul";
-        togglePreviewButton.querySelector("[aria-hidden='true']").textContent = "👁";
-        togglePreviewButton.querySelector(".preview-toggle-label").textContent = "Aperçu seul";
-        editor.focus();
-    }
-
-    function togglePreviewOnly() {
-        const previewOnly = editorView.classList.toggle("preview-only");
-        togglePreviewButton.setAttribute("aria-pressed", String(previewOnly));
-        togglePreviewButton.title = previewOnly ? "Revenir au mode édition" : "Afficher l’aperçu seul";
-        togglePreviewButton.querySelector("[aria-hidden='true']").textContent = previewOnly ? "✎" : "👁";
-        togglePreviewButton.querySelector(".preview-toggle-label").textContent = previewOnly ? "Mode édition" : "Aperçu seul";
-        if (!previewOnly) editor.focus();
+        NoteEditorView.showEditor({ home: homeView, editorView, header: editorHeader, editor, previewToggle: togglePreviewButton });
     }
 
     function renderPreview() {
-        preview.innerHTML = MarkdownRenderer.render(editor.value);
-        const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
-        wordCount.textContent = `Mots : ${words}`;
-    }
-
-    function updateTaskFromPreview(event) {
-        const checkbox = event.target.closest("input[type='checkbox'][data-task-line]");
-        if (!checkbox || !preview.contains(checkbox)) return;
-
-        const lines = editor.value.split("\n");
-        const lineIndex = Number(checkbox.dataset.taskLine);
-        const taskLine = lines[lineIndex];
-        const marker = taskLine?.match(/^(\s*[-*+]\s+\[)([ xX])(\]\s+.*)$/);
-        if (!marker) return;
-
-        const checkedMarker = checkbox.checked ? "x" : " ";
-        lines[lineIndex] = `${marker[1]}${checkedMarker}${marker[3]}`;
-        editor.value = lines.join("\n");
-        renderPreview();
-        scheduleAutoSave();
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
     }
 
     function updateDirectoryButtons(connected) {
@@ -94,134 +58,19 @@
         }
     }
 
-    function handleEditorEnter(event) {
-        if (event.key !== "Enter" || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
-        if (editor.selectionStart !== editor.selectionEnd) return;
-
-        const value = editor.value;
-        const caret = editor.selectionStart;
-        const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
-        const nextLineBreak = value.indexOf("\n", caret);
-        const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
-        if (caret !== lineEnd) return;
-
-        const line = value.slice(lineStart, lineEnd);
-        const emptyTask = line.match(/^(\s*[-*+]\s+\[[ xX]\]\s*)$/);
-        const emptyOrdered = line.match(/^(\s*)(\d+)([.)])\s*$/);
-        const emptyBullet = line.match(/^\s*[-*+]\s*$/);
-        if (emptyTask || emptyOrdered || emptyBullet) {
-            event.preventDefault();
-            editor.setRangeText("", lineStart, lineEnd, "end");
-            editor.dispatchEvent(new Event("input", { bubbles: true }));
-            return;
-        }
-
-        const task = line.match(/^(\s*[-*+]\s+)\[[ xX]\]\s+.*$/);
-        const ordered = line.match(/^(\s*)(\d+)([.)])\s+.*$/);
-        const bullet = line.match(/^(\s*[-*+]\s+).*$/);
-        let continuation = "";
-
-        if (task) continuation = `${task[1]}[ ] `;
-        else if (ordered) continuation = `${ordered[1]}${Number(ordered[2]) + 1}${ordered[3]} `;
-        else if (bullet) continuation = bullet[1];
-        else return;
-
-        event.preventDefault();
-        editor.setRangeText(`\n${continuation}`, caret, caret, "end");
-        editor.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-
-    function handleEditorBackspace(event) {
-        if (event.key !== "Backspace" || editor.selectionStart !== editor.selectionEnd) return;
-
-        const value = editor.value;
-        const caret = editor.selectionStart;
-        const lineStart = value.lastIndexOf("\n", caret - 1) + 1;
-        const nextLineBreak = value.indexOf("\n", caret);
-        const lineEnd = nextLineBreak === -1 ? value.length : nextLineBreak;
-        if (caret !== lineEnd) return;
-
-        const line = value.slice(lineStart, lineEnd);
-        if (!/^(?:\s*[-*+]\s+\[[ xX]\]\s*|\s*[-*+]\s*|\s*\d+[.)]\s*)$/.test(line)) return;
-
-        event.preventDefault();
-        editor.setRangeText("", lineStart, lineEnd, "end");
-        editor.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-
-    function handleEditorTab(event) {
-        if (event.key !== "Tab") return;
-        event.preventDefault();
-
-        const value = editor.value;
-        const selectionStart = editor.selectionStart;
-        const selectionEnd = editor.selectionEnd;
-        const indent = "    ";
-
-        if (selectionStart === selectionEnd) {
-            if (!event.shiftKey) {
-                editor.setRangeText(indent, selectionStart, selectionEnd, "end");
-            } else {
-                const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-                const lineIndent = value.slice(lineStart).match(/^(?:\t| {1,4})/)?.[0];
-                if (lineIndent) {
-                    editor.setRangeText("", lineStart, lineStart + lineIndent.length, "preserve");
-                }
-            }
-        } else {
-            const firstLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
-            const lastSelectedPosition = selectionEnd > selectionStart && value[selectionEnd - 1] === "\n"
-                ? selectionEnd - 1
-                : Math.max(selectionStart, selectionEnd - 1);
-            const lastLineStart = value.lastIndexOf("\n", lastSelectedPosition - 1) + 1;
-            const segmentEnd = value.indexOf("\n", lastLineStart) === -1
-                ? value.length
-                : value.indexOf("\n", lastLineStart);
-            const lines = value.slice(firstLineStart, segmentEnd).split("\n");
-            const updatedLines = lines.map(line => {
-                if (!event.shiftKey) return indent + line;
-                return line.replace(/^(?:\t| {1,4})/, "");
-            });
-            const replacement = updatedLines.join("\n");
-            editor.setRangeText(replacement, firstLineStart, segmentEnd, "select");
-        }
-
-        editor.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-
     async function refreshNotes() {
         if (!directoryHandle) return;
         const notes = await NoteFiles.listNotes(directoryHandle);
-        notesList.replaceChildren();
-        notesEmpty.hidden = notes.length > 0;
-        notes.forEach(note => {
-            const item = document.createElement("li");
-            const row = document.createElement("div");
-            const openButton = document.createElement("button");
-            const title = document.createElement("span");
-            const fileName = document.createElement("span");
-            const deleteButton = document.createElement("button");
-            row.className = "note-row";
-            openButton.type = "button";
-            openButton.className = "note-link";
-            title.className = "note-title";
-            fileName.className = "note-filename";
-            deleteButton.type = "button";
-            deleteButton.className = "note-delete";
-            deleteButton.setAttribute("aria-label", `Supprimer ${note.name}`);
-            deleteButton.title = `Supprimer ${note.name}`;
-            deleteButton.textContent = "🗑";
-            title.textContent = note.title;
-            fileName.textContent = note.name;
-            openButton.append(title, fileName);
-            openButton.addEventListener("click", () => openNote(note.handle));
-            deleteButton.addEventListener("click", () => deleteNote(note.name));
-            row.append(openButton, deleteButton);
-            item.append(row);
-            notesList.append(item);
+        NoteHomeView.renderNotes({
+            list: notesList,
+            emptyState: notesEmpty,
+            directoryStatus,
+            createButton,
+            notes,
+            directoryName: directoryHandle.name,
+            onOpen: openNote,
+            onDelete: deleteNote
         });
-        directoryStatus.textContent = `${notes.length} note${notes.length === 1 ? "" : "s"} dans ${directoryHandle.name}`;
-        createButton.disabled = false;
     }
 
     async function deleteNote(fileName) {
@@ -306,29 +155,7 @@
 
     function downloadHtml() {
         const name = activeNote?.name.replace(/\.md$/i, "") || "note";
-        const title = MarkdownRenderer.escapeHtml(name);
-        const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-    <style>
-        body { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; color: #333; font: 16px/1.6 sans-serif; }
-        h1, h2, h3 { color: #8b3a3a; }
-        pre { overflow-x: auto; padding: 1rem; background: #f5f5f5; }
-        code { padding: .15rem .3rem; background: #f0e5e5; }
-        pre code { padding: 0; background: transparent; }
-        blockquote { border-left: 4px solid #8b3a3a; padding-left: 1rem; color: #666; }
-        .task-list { list-style: none; padding-left: 0; }
-        a { color: #8b3a3a; }
-    </style>
-</head>
-<body>
-    <h1>${title}</h1>
-    ${preview.innerHTML}
-</body>
-</html>`;
+        const html = NoteHtmlExport.build(name, preview);
         NoteFiles.download(`${name}.html`, html, "text/html;charset=utf-8");
         showStatus("Fichier HTML téléchargé");
     }
@@ -432,16 +259,14 @@
         }
     }
 
-    editor.addEventListener("keydown", handleEditorEnter);
-    editor.addEventListener("keydown", handleEditorBackspace);
-    editor.addEventListener("keydown", handleEditorTab);
-    preview.addEventListener("change", updateTaskFromPreview);
+    NoteEditorInput.bind(editor);
+    NoteEditorView.bindTaskChanges(editor, preview, wordCount, scheduleAutoSave);
     editor.addEventListener("input", () => {
         renderPreview();
         scheduleAutoSave();
     });
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
-    togglePreviewButton.addEventListener("click", togglePreviewOnly);
+    togglePreviewButton.addEventListener("click", () => NoteEditorView.togglePreviewOnly(editorView, togglePreviewButton, editor));
     chooseDirectoryButton.addEventListener("click", chooseDirectory);
     changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);
     createButton.addEventListener("click", createNote);

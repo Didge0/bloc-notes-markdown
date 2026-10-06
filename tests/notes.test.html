@@ -4,87 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tests des fichiers de notes</title>
-    <style>
-        body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 sans-serif; color: #222; }
-        li { margin: .4rem 0; }
-        .pass { color: #176b3a; }
-        .fail { color: #a11; }
-    </style>
+    <link rel="stylesheet" href="css/test.css">
 </head>
 <body>
     <h1>Tests des fichiers de notes</h1>
     <p id="summary" aria-live="polite">Tests en cours...</p>
     <ol id="results"></ol>
-    <script src="../js/files.js"></script>
-    <script>
-        (async () => {
-            const files = new Map();
-            function makeHandle(name, initialContent = "") {
-                let content = initialContent;
-                return {
-                    kind: "file",
-                    name,
-                    async getFile() {
-                        return { name, lastModified: 0, async text() { return content; } };
-                    },
-                    async createWritable() {
-                        return {
-                            async write(value) { content = value; files.set(name, content); },
-                            async close() {},
-                            async abort() {}
-                        };
-                    }
-                };
-            }
-            files.set("Zeta.md", "Sans titre");
-            const directory = {
-                async *values() {
-                    for (const [name, content] of files) yield makeHandle(name, content);
-                    yield { kind: "file", name: "ignore.txt" };
-                    yield { kind: "directory", name: "sous-dossier" };
-                },
-                async getFileHandle(name) {
-                    if (files.has(name)) throw new Error("Le test ne doit pas écraser un fichier.");
-                    return makeHandle(name);
-                },
-                async removeEntry(name) {
-                    if (!files.delete(name)) throw new Error("Fichier introuvable");
-                }
-            };
-            const checks = [];
-            const notes = await NoteFiles.listNotes(directory);
-            checks.push(["filtre les fichiers Markdown", notes.length === 1 && notes[0].name === "Zeta.md"]);
-            checks.push(["utilise le nom sans H1", notes[0]?.title === "Zeta"]);
-            checks.push(["extrait le premier H1", NoteFiles.getTitle("# Titre\n\nTexte", "note.md") === "Titre"]);
-            checks.push(["retombe sur le nom si le H1 est vide", NoteFiles.getTitle("#   ", "note.md") === "note"]);
-            const created = await NoteFiles.createNote(directory, "Alpha");
-            await NoteFiles.writeNote(created.handle, "# Nouveau contenu");
-            checks.push(["crée et écrit un fichier Markdown", files.get("Alpha.md") === "# Nouveau contenu"]);
-            let duplicateRejected = false;
-            try { await NoteFiles.createNote(directory, "alpha.md"); } catch { duplicateRejected = true; }
-            checks.push(["refuse un nom existant sans l’écraser", duplicateRejected && files.get("Alpha.md") === "# Nouveau contenu"]);
-            let invalidNameRejected = false;
-            try { await NoteFiles.createNote(directory, "../interdit"); } catch { invalidNameRejected = true; }
-            checks.push(["refuse les noms de fichier invalides", invalidNameRejected]);
-            await NoteFiles.deleteNote(directory, "Alpha.md");
-            checks.push(["supprime la note Markdown ciblée", !files.has("Alpha.md")]);
-            let nonMarkdownRejected = false;
-            try { await NoteFiles.deleteNote(directory, "ignore.txt"); } catch { nonMarkdownRejected = true; }
-            checks.push(["refuse la suppression d’un fichier non Markdown", nonMarkdownRejected]);
-
-            let failures = 0;
-            const list = document.getElementById("results");
-            for (const [label, passed] of checks) {
-                const item = document.createElement("li");
-                item.className = passed ? "pass" : "fail";
-                item.textContent = `${passed ? "OK" : "ÉCHEC"} : ${label}`;
-                list.append(item);
-                if (!passed) failures += 1;
-            }
-            const summary = document.getElementById("summary");
-            summary.textContent = `${checks.length - failures}/${checks.length} tests réussis`;
-            summary.className = failures ? "fail" : "pass";
-        })();
-    </script>
+    <script src="../js/services/notes-files.js"></script>
+    <script src="js/notes.test.js"></script>
 </body>
 </html>

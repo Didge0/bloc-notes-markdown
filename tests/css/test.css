@@ -1,0 +1,4 @@
+body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; color: #222; font: 16px/1.5 sans-serif; }
+li { margin: .4rem 0; }
+.pass { color: #176b3a; }
+.fail { color: #a11; }

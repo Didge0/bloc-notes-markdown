@@ -7,7 +7,6 @@
     .panel { max-height: 50vh; }
     .panel h2 { padding: 1rem; font-size: 1rem; }
     .preview-content, #editor { padding: 1rem; font-size: .9rem; }
-    .button-bar { gap: .7rem; padding: 1rem; }
     .btn { min-width: 120px; flex: 1; padding: .6rem 1rem; font-size: .85rem; }
     .preview-content h1 { font-size: 1.5rem; }
     .preview-content h2 { font-size: 1.3rem; }
@@ -29,7 +28,7 @@
 }
 
 @media print {
-    header, .status-bar, .button-bar, .editor-panel, .home-view { display: none; }
+    header, .status-bar, .editor-panel, .home-view { display: none; }
     body { background: var(--color-white); }
     .editor-view .container { max-width: 100%; min-height: auto; gap: 0; padding: 0; }
     .preview-panel { flex: 1; border-radius: 0; box-shadow: none; }

@@ -12,26 +12,50 @@ L’application ne peut pas parcourir un dossier local sans autorisation explici
 
 ```text
 bloc-notes-markdown/
-├── index.html
+├── .gitignore                         # Fichiers locaux exclus du suivi Git
+├── Bloc-notes_Markdown_icon.ico       # Icône utilisée par l’onglet du navigateur
+├── index.html                         # Point d’entrée HTML et ordre de chargement des ressources
 ├── css/
-│   ├── base.css
-│   ├── editor.css
-│   └── responsive.css
+│   ├── tokens.css                     # Couleurs, variables et styles globaux
+│   ├── base.css                       # En-tête, accueil, commandes et structure générale
+│   ├── editor.css                     # Zone de saisie Markdown
+│   ├── preview.css                    # Présentation du Markdown rendu
+│   └── responsive.css                 # Adaptations mobile et impression
 ├── js/
-│   ├── app.js
-│   ├── files.js
-│   ├── markdown.js
-│   └── storage.js
-├── examples/
-│   └── example.md
+│   ├── app.js                         # Coordination des vues, événements et flux de notes
+│   ├── core/
+│   │   └── markdown/
+│   │       ├── parser.js              # Convertit le Markdown en structure de données
+│   │       └── renderer.js            # Construit l’aperçu avec l’API DOM
+│   ├── services/
+│   │   ├── notes-files.js             # Lecture, liste, création, écriture et suppression de notes
+│   │   └── storage.js                 # Handle du dossier et migration localStorage
+│   ├── ui/
+│   │   ├── home-view.js               # Construction de la liste de notes
+│   │   ├── editor-view.js             # Aperçu, tâches interactives et bascule aperçu seul
+│   │   ├── editor-input.js            # Tabulation et continuation/sortie des listes
+│   │   └── html-export.js             # Export autonome; CSS embarqué isolé ici
 ├── notes/
-│   └── .gitkeep
+│   ├── example.md                      # Note d’exemple disponible depuis l’accueil
+│   ├── RDV Honorée comparaison.md      # Note Markdown du projet
+│   └── TODO.md                         # Liste des tâches du projet
 ├── tests/
-│   ├── markdown.test.html
-│   └── notes.test.html
-├── README.md
-└── CORRECTIONS.md
+│   ├── markdown.test.html              # Page de lancement des tests Markdown
+│   ├── notes.test.html                 # Page de lancement des tests des fichiers
+│   ├── css/
+│   │   └── test.css                    # Présentation partagée des rapports
+│   └── js/
+│       ├── markdown.test.js            # Cas du parseur et du rendu DOM
+│       └── notes.test.js               # Tests du service de fichiers simulé
+├── README.md                           # Guide du projet et de son lancement
+└── CORRECTIONS.md                      # Historique des corrections et fonctionnalités
 ```
+
+### Logique d’organisation
+
+Le HTML de `index.html` décrit les vues et charge les scripts classiques dans l’ordre de leurs dépendances, sans bundler ni serveur obligatoire. Le parseur (`core/markdown/parser.js`) ne produit que des données; le renderer (`core/markdown/renderer.js`) crée les éléments DOM et insère les textes comme texte, pas comme balises. Les opérations sur les notes et la persistance sont isolées dans `services/`, tandis que `ui/` regroupe les interactions propres à chaque vue. Les styles suivent la même séparation entre fondations, éditeur, aperçu et responsive.
+
+L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans le document exporté. C’est l’unique exception volontaire à la séparation des langages; l’exception est confinée à ce module. Les pages de test gardent elles aussi leur HTML, CSS et JavaScript dans des fichiers séparés.
 
 ## Fonctions
 
@@ -73,7 +97,7 @@ Le handle sauvegardé dans IndexedDB sert à retrouver le dossier sélectionné,
 
 ## Sécurité
 
-Le contenu Markdown est échappé avant d’être rendu. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. L’application ne charge aucun script tiers et n’envoie pas les notes sur un serveur; l’accès aux seuls fichiers choisis reste soumis à l’autorisation du navigateur.
+Le renderer crée les nœuds texte avec l’API DOM, sans interpréter le contenu de la note comme du HTML. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. L’application ne charge aucun script tiers et n’envoie pas les notes sur un serveur; l’accès aux seuls fichiers choisis reste soumis à l’autorisation du navigateur.
 
 ## Tests
 
@@ -81,4 +105,4 @@ Ouvrez les deux pages dans `tests/` directement dans le navigateur. Elles testen
 
 ## Technologies
 
-HTML, CSS et JavaScript natifs; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation n’est requis.
+HTML, CSS et JavaScript natifs; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation n’est requis. Les scripts sont chargés séparément et dans l’ordre requis afin de garder le lancement direct par `file://`.

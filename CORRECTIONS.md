@@ -4,28 +4,39 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 
 ## Structure
 
-- `css/base.css` : variables, structure générale et commandes
-- `css/editor.css` : éditeur et rendu de l’aperçu
+- `css/tokens.css` : variables de thème, reset et styles globaux
+- `css/base.css` : structure générale, accueil, en-tête et commandes
+- `css/editor.css` : textarea Markdown et interactions clavier visuelles
+- `css/preview.css` : styles des éléments Markdown rendus
 - `css/responsive.css` : adaptations mobile et impression
-- `js/markdown.js` : rendu Markdown et échappement du contenu
-- `js/storage.js` : handle du dossier dans IndexedDB et lecture de l’ancienne note `localStorage`
-- `js/files.js` : liste, ouverture, création sans écrasement et écriture des notes; téléchargements
-- `js/app.js` : navigation accueil/éditeur, autorisations, import, aperçu et sauvegarde au retour
-- `tests/markdown.test.html` : vérifications exécutables du rendu
-- `tests/notes.test.html` : vérifications des opérations sur les fichiers simulés
-- `examples/example.md` : document de démonstration
-- `notes/` : fichiers de notes de l’application
+- `js/core/markdown/parser.js` : analyse le Markdown en structure de données sans produire de balisage HTML
+- `js/core/markdown/renderer.js` : construit l’aperçu sûr avec l’API DOM
+- `js/services/notes-files.js` : opérations sur les fichiers Markdown et téléchargements
+- `js/services/storage.js` : handle du dossier IndexedDB et compatibilité de migration localStorage
+- `js/ui/home-view.js` : rendu de la liste d’accueil
+- `js/ui/editor-view.js` : rendu aperçu, tâches interactives et mode aperçu seul
+- `js/ui/editor-input.js` : commandes Tab, Entrée et Retour arrière
+- `js/ui/html-export.js` : assemblage du document HTML autonome; seul module qui embarque son CSS
+- `js/app.js` : coordination de la navigation, des permissions et de la sauvegarde
+- `tests/css/test.css` : styles partagés des pages de test
+- `tests/js/markdown.test.js` : cas de test parser et renderer
+- `tests/js/notes.test.js` : tests CRUD sur un dossier simulé
+- `notes/` : notes Markdown réelles de l’application
 
 ## Corrections apportées
 
 - Prise en charge des listes à puces, numérotées et des cases à cocher annoncées dans le README
-- Échappement des contenus et des attributs, avec refus des protocoles de lien non autorisés
-- Sauvegarde automatique après modification du contenu ou du nom de note
+- Construction de l’aperçu par API DOM; le texte de la note n’est pas interprété comme du HTML
+- Refus des protocoles de lien non autorisés
+- Sauvegarde automatique après modification du contenu de la note
 - Continuation automatique des listes à la touche Entrée et sortie propre avec Entrée ou Retour arrière sur un marqueur vide
 - Gestion des erreurs de stockage et de lecture de fichier avec un message de statut
 - Conservation de la clé `blocNotes` et du format `{ content, fileName }` pour récupérer les données existantes
-- Remplacement de la page de test descriptive par des tests qui exécutent le parseur
+- Tests séparés en pages HTML, feuilles CSS et scripts JavaScript externes
 - Correction des textes français mal encodés
+- Séparation du parseur Markdown (données) et du rendu de l’aperçu (API DOM)
+- Découpage des services fichiers/stockage et des comportements propres aux vues
+- Séparation des tests et des styles en fichiers externes
 - Écran d’accueil listant les notes Markdown du dossier autorisé
 - Sauvegarde du fichier actif avant le retour à l’accueil et création de notes sans collision
 - Suppression confirmée d’une note depuis sa ligne dans l’accueil

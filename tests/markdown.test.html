@@ -4,50 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tests du rendu Markdown</title>
-    <style>
-        body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; font: 16px/1.5 sans-serif; color: #222; }
-        li { margin: 0.4rem 0; }
-        .pass { color: #176b3a; }
-        .fail { color: #a11; }
-    </style>
+    <link rel="stylesheet" href="css/test.css">
 </head>
 <body>
     <h1>Tests du rendu Markdown</h1>
     <p id="summary" aria-live="polite">Tests en cours...</p>
     <ol id="results"></ol>
-    <script src="../js/markdown.js"></script>
-    <script>
-        const sharePointUrl = "https://sncf.sharepoint.com/:x:/r/sites/TELEDIAG_SPDC/Documents%20partages/Affaires/ORDO_ordo%20correctif%20(SC-2019-00425)/02%20-%20Documentation%20donn%C3%A9es%20entr%C3%A9e%20et%20process/04%20-%20Donnees%20STF%20pour%20utilisation%20OrdoC/Correspondance%20Site%20Ordo%20C.xlsx?d=w745aa0f3f00a4bb39bfad35f31539f0b&csf=1&web=1&e=bgplHq";
-        const cases = [
-            ["contenu vide", "", ""],
-            ["titres", "# Titre\n\n## Sous-titre\n### Niveau 3", "<h1>Titre</h1>\n<h2>Sous-titre</h2>\n<h3>Niveau 3</h3>"],
-            ["emphase et code", "**fort** *fin* `x < y`", "<p><strong>fort</strong> <em>fin</em> <code>x &lt; y</code></p>"],
-            ["retour à la ligne dans un paragraphe", "Prévu le 30-09 à 21h jusqu’au 01-10 à 19h.\nEffectué le 01-10 à 9h jusqu’au 01-10 à 19h.", "<p>Prévu le 30-09 à 21h jusqu’au 01-10 à 19h.<br>Effectué le 01-10 à 9h jusqu’au 01-10 à 19h.</p>"],
-            ["listes à puces", "- un\n- deux", "<ul><li>un</li><li>deux</li></ul>"],
-            ["liste numérotée", "1. un\n2. deux", "<ol><li>un</li><li>deux</li></ol>"],
-            ["ligne indentée alignée dans une puce", "- élément\n    détail aligné", "<ul><li>élément<br>détail aligné</li></ul>"],
-            ["ligne indentée alignée dans un numéro", "1. premier\n    détail aligné", "<ol><li>premier<br>détail aligné</li></ol>"],
-            ["liste interrompue conserve son numéro", "1. RDV n°5424062\nRendez-vous annulé\n2.", "<ol><li>RDV n°5424062</li></ol>\n<p>Rendez-vous annulé</p>\n<ol start=\"2\"><li></li></ol>"],
-            ["cases à cocher", "- [x] fait\n- [ ] à faire", '<ul class="task-list"><li><input type="checkbox" data-task-line="0" aria-label="Marquer la tâche comme terminée" checked>fait</li><li><input type="checkbox" data-task-line="1" aria-label="Marquer la tâche comme terminée">à faire</li></ul>'],
-            ["ligne de tâche précise après un bloc de code", "```\n- [ ] exemple\n```\n- [ ] tâche réelle", '<pre><code>- [ ] exemple</code></pre>\n<ul class="task-list"><li><input type="checkbox" data-task-line="3" aria-label="Marquer la tâche comme terminée">tâche réelle</li></ul>'],
-            ["code échappé", "```js\n<scr" + "ipt>alert(1)</scr" + "ipt>\n```", "<pre><code>&lt;script&gt;alert(1)&lt;/script&gt;</code></pre>"],
-            ["HTML échappé", "<scr" + "ipt>alert(1)</scr" + "ipt>", "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"],
-            ["lien JavaScript neutralisé", "[ouvrir](javascript:alert)", "<p>ouvrir</p>"],
-            ["lien HTTPS", "[site](https://example.com)", '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">site</a></p>'],
-            ["lien SharePoint avec parenthèses", `[Correspondance Site Ordo-C](${sharePointUrl})`, `<p><a href="${sharePointUrl.replace(/&/g, "&amp;")}" target="_blank" rel="noopener noreferrer">Correspondance Site Ordo-C</a></p>`]
-        ];
-        let failures = 0;
-        const results = document.getElementById("results");
-        for (const [name, input, expected] of cases) {
-            const passed = MarkdownRenderer.render(input) === expected;
-            const item = document.createElement("li");
-            item.className = passed ? "pass" : "fail";
-            item.textContent = `${passed ? "OK" : "ÉCHEC"} : ${name}`;
-            results.append(item);
-            if (!passed) failures += 1;
-        }
-        document.getElementById("summary").textContent = `${cases.length - failures}/${cases.length} tests réussis`;
-        document.getElementById("summary").className = failures ? "fail" : "pass";
-    </script>
+    <script src="../js/core/markdown/parser.js"></script>
+    <script src="../js/core/markdown/renderer.js"></script>
+    <script src="js/markdown.test.js"></script>
 </body>
 </html>

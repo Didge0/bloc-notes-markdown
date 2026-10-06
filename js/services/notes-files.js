@@ -20,13 +20,7 @@
         for await (const entry of directoryHandle.values()) {
             if (entry.kind !== "file" || !/\.md$/i.test(entry.name)) continue;
             const file = await entry.getFile();
-            const content = await file.text();
-            notes.push({
-                name: entry.name,
-                title: getTitle(content, entry.name),
-                handle: entry,
-                modified: file.lastModified
-            });
+            notes.push({ name: entry.name, title: getTitle(await file.text(), entry.name), handle: entry, modified: file.lastModified });
         }
         return notes.sort((left, right) => left.name.localeCompare(right.name, "fr", { sensitivity: "base" }));
     }
@@ -41,14 +35,12 @@
         if (!baseName || /[<>:"/\\|?*\u0000-\u001f]/.test(baseName) || /[. ]$/.test(baseName)) {
             throw new Error("Choisissez un nom de fichier valide.");
         }
-
         const fileName = `${baseName}.md`;
         for await (const entry of directoryHandle.values()) {
             if (entry.kind === "file" && entry.name.toLocaleLowerCase("fr") === fileName.toLocaleLowerCase("fr")) {
                 throw new Error("Une note porte déjà ce nom.");
             }
         }
-
         const handle = await directoryHandle.getFileHandle(fileName, { create: true });
         await writeNote(handle, "");
         return { name: fileName, content: "", handle };
