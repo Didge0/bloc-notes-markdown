@@ -17,6 +17,7 @@
     <ol id="results"></ol>
     <script src="../js/markdown.js"></script>
     <script>
+        const sharePointUrl = "https://sncf.sharepoint.com/:x:/r/sites/TELEDIAG_SPDC/Documents%20partages/Affaires/ORDO_ordo%20correctif%20(SC-2019-00425)/02%20-%20Documentation%20donn%C3%A9es%20entr%C3%A9e%20et%20process/04%20-%20Donnees%20STF%20pour%20utilisation%20OrdoC/Correspondance%20Site%20Ordo%20C.xlsx?d=w745aa0f3f00a4bb39bfad35f31539f0b&csf=1&web=1&e=bgplHq";
         const cases = [
             ["contenu vide", "", ""],
             ["titres", "# Titre\n\n## Sous-titre\n### Niveau 3", "<h1>Titre</h1>\n<h2>Sous-titre</h2>\n<h3>Niveau 3</h3>"],
@@ -32,7 +33,8 @@
             ["code échappé", "```js\n<scr" + "ipt>alert(1)</scr" + "ipt>\n```", "<pre><code>&lt;script&gt;alert(1)&lt;/script&gt;</code></pre>"],
             ["HTML échappé", "<scr" + "ipt>alert(1)</scr" + "ipt>", "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"],
             ["lien JavaScript neutralisé", "[ouvrir](javascript:alert)", "<p>ouvrir</p>"],
-            ["lien HTTPS", "[site](https://example.com)", '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">site</a></p>']
+            ["lien HTTPS", "[site](https://example.com)", '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">site</a></p>'],
+            ["lien SharePoint avec parenthèses", `[Correspondance Site Ordo-C](${sharePointUrl})`, `<p><a href="${sharePointUrl.replace(/&/g, "&amp;")}" target="_blank" rel="noopener noreferrer">Correspondance Site Ordo-C</a></p>`]
         ];
         let failures = 0;
         const results = document.getElementById("results");
