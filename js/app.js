@@ -2,6 +2,7 @@
     const homeView = document.getElementById("homeView");
     const editorView = document.getElementById("editorView");
     const editorHeader = document.getElementById("editorHeader");
+    const togglePreviewButton = document.getElementById("btnTogglePreview");
     const editor = document.getElementById("editor");
     const preview = document.getElementById("preview");
     const fileNameInput = document.getElementById("fileName");
@@ -35,7 +36,21 @@
         homeView.hidden = true;
         editorView.hidden = false;
         editorHeader.hidden = false;
+        editorView.classList.remove("preview-only");
+        togglePreviewButton.setAttribute("aria-pressed", "false");
+        togglePreviewButton.title = "Afficher l’aperçu seul";
+        togglePreviewButton.querySelector("[aria-hidden='true']").textContent = "👁";
+        togglePreviewButton.querySelector(".preview-toggle-label").textContent = "Aperçu seul";
         editor.focus();
+    }
+
+    function togglePreviewOnly() {
+        const previewOnly = editorView.classList.toggle("preview-only");
+        togglePreviewButton.setAttribute("aria-pressed", String(previewOnly));
+        togglePreviewButton.title = previewOnly ? "Revenir au mode édition" : "Afficher l’aperçu seul";
+        togglePreviewButton.querySelector("[aria-hidden='true']").textContent = previewOnly ? "✎" : "👁";
+        togglePreviewButton.querySelector(".preview-toggle-label").textContent = previewOnly ? "Mode édition" : "Aperçu seul";
+        if (!previewOnly) editor.focus();
     }
 
     function renderPreview() {
@@ -308,6 +323,7 @@
         scheduleAutoSave();
     });
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
+    togglePreviewButton.addEventListener("click", togglePreviewOnly);
     document.getElementById("btnChooseDirectory").addEventListener("click", chooseDirectory);
     createButton.addEventListener("click", createNote);
 

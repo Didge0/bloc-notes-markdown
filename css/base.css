@@ -161,3 +161,8 @@ header h1 { color: var(--color-primary); font-size: 1.8rem; font-weight: 700; }
 .empty-state { padding: 2.5rem 0; color: var(--color-text-light); }
 .editor-header { align-items: center; }
 .editor-header .btn { white-space: nowrap; }
+.preview-toggle { display: inline-flex; align-items: center; gap: .45rem; }
+.preview-toggle [aria-hidden="true"] { font-size: 1.05rem; line-height: 1; }
+.preview-only .editor-panel { display: none; }
+.preview-only .preview-panel { flex: 1; }
+.preview-only .preview-content { min-height: calc(100vh - 310px); }
