@@ -1,6 +1,7 @@
 @media (max-width: 768px) {
     header { flex-direction: column; align-items: flex-start; }
     header h1 { font-size: 1.4rem; }
+    .status-bar { width: 100%; min-width: 0; text-align: left; }
     .header-controls, #fileName { width: 100%; }
     #fileName { min-width: 0; }
     .container { min-height: auto; flex-direction: column; gap: 1.5rem; padding: 1rem; }
@@ -28,7 +29,7 @@
 }
 
 @media print {
-    header, .status-bar, .editor-panel, .home-view { display: none; }
+    header, .editor-panel, .home-view { display: none; }
     body { background: var(--color-white); }
     .editor-view .container { max-width: 100%; min-height: auto; gap: 0; padding: 0; }
     .preview-panel { flex: 1; border-radius: 0; box-shadow: none; }

@@ -27,7 +27,11 @@
     function showStatus(message) {
         window.clearTimeout(statusTimeout);
         statusBar.textContent = message;
-        statusTimeout = window.setTimeout(() => { statusBar.textContent = ""; }, 4000);
+        statusBar.hidden = false;
+        statusTimeout = window.setTimeout(() => {
+            statusBar.textContent = "";
+            statusBar.hidden = true;
+        }, 4000);
     }
 
     function showHome() {
