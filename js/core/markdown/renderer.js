@@ -27,11 +27,35 @@
 
     function render(ast) {
         const fragment = document.createDocumentFragment();
+        const sections = [];
         for (const block of ast.blocks) {
             let element;
             if (block.type === "heading") {
-                element = document.createElement(`h${block.level}`);
-                element.append(renderInline(block.children));
+                while (sections.length && sections[sections.length - 1].level >= block.level) sections.pop();
+                const section = document.createElement("div");
+                section.className = "markdown-section";
+                const headingRow = document.createElement("div");
+                headingRow.className = "markdown-section-heading";
+                const toggle = document.createElement("button");
+                toggle.type = "button";
+                toggle.className = "markdown-collapse-toggle";
+                toggle.setAttribute("aria-expanded", "true");
+                toggle.setAttribute("aria-label", "Replier le contenu de cette section");
+                toggle.title = "Replier le contenu";
+                const chevron = document.createElement("span");
+                chevron.className = "markdown-collapse-icon";
+                chevron.setAttribute("aria-hidden", "true");
+                toggle.append(chevron);
+                const heading = document.createElement(`h${block.level}`);
+                heading.append(renderInline(block.children));
+                headingRow.append(toggle, heading);
+                const content = document.createElement("div");
+                content.className = "markdown-section-content";
+                section.append(headingRow, content);
+                const parent = sections.length ? sections[sections.length - 1].content : fragment;
+                parent.append(section);
+                sections.push({ level: block.level, content });
+                continue;
             } else if (block.type === "paragraph") {
                 element = document.createElement("p");
                 element.append(renderLines(block.lines));
@@ -65,7 +89,10 @@
                     element.append(listItem);
                 }
             }
-            if (element) fragment.append(element);
+            if (element) {
+                const parent = sections.length ? sections[sections.length - 1].content : fragment;
+                parent.append(element);
+            }
         }
         return fragment;
     }

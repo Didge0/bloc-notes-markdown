@@ -8,6 +8,7 @@
     .panel { max-height: 50vh; }
     .panel h2 { padding: 1rem; font-size: 1rem; }
     .preview-content, #editor { padding: 1rem; font-size: .9rem; }
+    .preview-content { padding-left: 1.75rem; }
     .btn { min-width: 120px; flex: 1; padding: .6rem 1rem; font-size: .85rem; }
     .preview-content h1 { font-size: 1.5rem; }
     .preview-content h2 { font-size: 1.3rem; }

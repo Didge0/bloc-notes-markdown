@@ -81,6 +81,7 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 - Gras (`**texte**` ou `__texte__`) et italique (`*texte*` ou `_texte_`)
 - Code en ligne et blocs de code entre triples accents graves
 - Listes à puces, listes numérotées et cases à cocher interactives dans l’aperçu
+- Sections des titres repliables et dépliables avec le chevron à leur gauche
 - Citations, liens et séparateurs horizontaux
 - Retours à la ligne conservés dans les paragraphes
 

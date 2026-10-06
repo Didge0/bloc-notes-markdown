@@ -21,19 +21,53 @@
 
     let failures = 0;
     const results = document.getElementById("results");
+    function normalizeRendered(element) {
+        element.querySelectorAll(".markdown-collapse-toggle").forEach(button => button.remove());
+        element.querySelectorAll(".markdown-section-heading, .markdown-section-content, .markdown-section").forEach(wrapper => {
+            wrapper.replaceWith(...wrapper.childNodes);
+        });
+        return element.innerHTML;
+    }
     for (const [name, input, expected] of cases) {
         const ast = MarkdownParser.parse(input);
         const rendered = document.createElement("div");
         rendered.append(MarkdownRenderer.render(ast));
         const taskStatesAreCorrect = name !== "cases interactives"
             || [...rendered.querySelectorAll("input[type='checkbox']")].map(checkbox => checkbox.checked).join(",") === "true,false";
-        const passed = rendered.innerHTML === expected && !JSON.stringify(ast).includes("<h1>") && taskStatesAreCorrect;
+        const passed = normalizeRendered(rendered) === expected && !JSON.stringify(ast).includes("<h1>") && taskStatesAreCorrect;
         const item = document.createElement("li");
         item.className = passed ? "pass" : "fail";
         item.textContent = `${passed ? "OK" : "ÉCHEC"} : ${name}`;
         results.append(item);
         if (!passed) failures += 1;
     }
-    document.getElementById("summary").textContent = `${cases.length - failures}/${cases.length} tests réussis`;
+
+    const collapsiblePreview = document.createElement("div");
+    collapsiblePreview.className = "preview-content";
+    collapsiblePreview.append(MarkdownRenderer.render(MarkdownParser.parse("# Principal\n\nContenu principal\n\n## Sous-section A\n\nContenu A\n\n## Sous-section B\n\nContenu B\n\n# Suivant\n\nContenu suivant")));
+    NoteEditorView.bindHeadingCollapse(collapsiblePreview);
+    document.body.append(collapsiblePreview);
+    const headings = [...collapsiblePreview.querySelectorAll("h1, h2")];
+    const sectionContents = [...collapsiblePreview.querySelectorAll(".markdown-section-content")];
+    const addResult = (label, passed) => {
+        const item = document.createElement("li");
+        item.className = passed ? "pass" : "fail";
+        item.textContent = `${passed ? "OK" : "ÉCHEC"} : ${label}`;
+        results.append(item);
+        if (!passed) failures += 1;
+    };
+
+    headings[0].previousElementSibling.click();
+    addResult("le H1 replie son contenu et ses sous-sections", sectionContents[0].hidden && !sectionContents[1].hidden && !sectionContents[2].hidden);
+    addResult("le H1 ne replie pas la section H1 suivante", !sectionContents[3].hidden);
+    headings[0].previousElementSibling.click();
+    headings[1].previousElementSibling.click();
+    addResult("un H2 replie sa propre section uniquement", sectionContents[1].hidden && !sectionContents[2].hidden && !sectionContents[3].hidden);
+    const firstToggle = headings[0].previousElementSibling;
+    addResult("le chevron expose son état accessible", firstToggle.getAttribute("aria-expanded") === "true");
+    collapsiblePreview.remove();
+
+    const totalTests = cases.length + 4;
+    document.getElementById("summary").textContent = `${totalTests - failures}/${totalTests} tests réussis`;
     document.getElementById("summary").className = failures ? "fail" : "pass";
 })();

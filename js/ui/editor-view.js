@@ -22,6 +22,22 @@
         });
     }
 
+    function bindHeadingCollapse(preview) {
+        preview.addEventListener("click", event => {
+            const toggle = event.target.closest(".markdown-collapse-toggle");
+            if (!toggle || !preview.contains(toggle)) return;
+            const section = toggle.closest(".markdown-section");
+            const content = section?.querySelector(":scope > .markdown-section-content");
+            if (!content) return;
+
+            const expanded = toggle.getAttribute("aria-expanded") === "true";
+            content.hidden = expanded;
+            toggle.setAttribute("aria-expanded", String(!expanded));
+            toggle.setAttribute("aria-label", `${expanded ? "Déplier" : "Replier"} le contenu de cette section`);
+            toggle.title = expanded ? "Déplier le contenu" : "Replier le contenu";
+        });
+    }
+
     function showEditor({ home, editorView, header, editor, previewToggle }) {
         home.hidden = true;
         editorView.hidden = false;
@@ -43,5 +59,5 @@
         if (!previewOnly) editor.focus();
     }
 
-    window.NoteEditorView = { bindTaskChanges, renderMarkdown, showEditor, togglePreviewOnly };
+    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, showEditor, togglePreviewOnly };
 })();

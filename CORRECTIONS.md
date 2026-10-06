@@ -36,6 +36,7 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Tests séparés en pages HTML, feuilles CSS et scripts JavaScript externes
 - Correction des textes français mal encodés
 - Séparation du parseur Markdown (données) et du rendu de l’aperçu (API DOM)
+- Sections H1, H2 et H3 repliables indépendamment jusqu’au prochain titre de niveau égal ou supérieur
 - Découpage des services fichiers/stockage et des comportements propres aux vues
 - Séparation des tests et des styles en fichiers externes
 - Écran d’accueil listant les notes Markdown du dossier autorisé
