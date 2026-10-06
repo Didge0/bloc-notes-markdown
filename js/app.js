@@ -63,6 +63,23 @@
         wordCount.textContent = `Mots : ${words}`;
     }
 
+    function updateTaskFromPreview(event) {
+        const checkbox = event.target.closest("input[type='checkbox'][data-task-line]");
+        if (!checkbox || !preview.contains(checkbox)) return;
+
+        const lines = editor.value.split("\n");
+        const lineIndex = Number(checkbox.dataset.taskLine);
+        const taskLine = lines[lineIndex];
+        const marker = taskLine?.match(/^(\s*[-*+]\s+\[)([ xX])(\]\s+.*)$/);
+        if (!marker) return;
+
+        const checkedMarker = checkbox.checked ? "x" : " ";
+        lines[lineIndex] = `${marker[1]}${checkedMarker}${marker[3]}`;
+        editor.value = lines.join("\n");
+        renderPreview();
+        scheduleAutoSave();
+    }
+
     function updateDirectoryButtons(connected) {
         changeDirectoryButton.hidden = !savedDirectoryHandle;
         if (connected) {
@@ -361,6 +378,7 @@
     }
 
     editor.addEventListener("keydown", handleEditorTab);
+    preview.addEventListener("change", updateTaskFromPreview);
     editor.addEventListener("input", () => {
         renderPreview();
         scheduleAutoSave();

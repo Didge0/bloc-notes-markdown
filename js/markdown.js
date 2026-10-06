@@ -73,7 +73,8 @@ function renderMarkdown(markdown) {
         flushList();
     };
 
-    for (const line of lines) {
+    for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+        const line = lines[lineIndex];
         if (code) {
             if (/^\s*```/.test(line)) {
                 output.push(`<pre><code>${escapeHtml(code.join("\n"))}</code></pre>`);
@@ -116,7 +117,7 @@ function renderMarkdown(markdown) {
             if (list && !list.task) flushList();
             if (!list) list = { tag: "ul", task: true, items: [] };
             const checked = task[1].toLowerCase() === "x" ? " checked" : "";
-            list.items.push(`<li><input type="checkbox" disabled${checked}>${renderInlineMarkdown(task[2])}</li>`);
+            list.items.push(`<li><input type="checkbox" data-task-line="${lineIndex}" aria-label="Marquer la tâche comme terminée"${checked}>${renderInlineMarkdown(task[2])}</li>`);
         } else if (bullet || ordered) {
             flushParagraph();
             flushQuote();

@@ -51,7 +51,7 @@ bloc-notes-markdown/
 - Titres de niveaux 1 à 3
 - Gras (`**texte**` ou `__texte__`) et italique (`*texte*` ou `_texte_`)
 - Code en ligne et blocs de code entre triples accents graves
-- Listes à puces, listes numérotées et cases à cocher
+- Listes à puces, listes numérotées et cases à cocher interactives dans l’aperçu
 - Citations, liens et séparateurs horizontaux
 - Retours à la ligne conservés dans les paragraphes
 
