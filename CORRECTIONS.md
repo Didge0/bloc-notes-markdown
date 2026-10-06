@@ -29,6 +29,7 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Construction de l’aperçu par API DOM; le texte de la note n’est pas interprété comme du HTML
 - Refus des protocoles de lien non autorisés
 - Sauvegarde automatique après modification du contenu de la note
+- Sauvegarde immédiate de la note active avec Ctrl+S/Cmd+S
 - Continuation automatique des listes à la touche Entrée et sortie propre avec Entrée ou Retour arrière sur un marqueur vide
 - Gestion des erreurs de stockage et de lecture de fichier avec un message de statut
 - Conservation de la clé `blocNotes` et du format `{ content, fileName }` pour récupérer les données existantes
@@ -40,6 +41,8 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Écran d’accueil listant les notes Markdown du dossier autorisé
 - Sauvegarde du fichier actif avant le retour à l’accueil et création de notes sans collision
 - Suppression confirmée d’une note depuis sa ligne dans l’accueil
+- Réordonnancement des notes par poignée, avec ordre persistant par dossier et commandes clavier
+- Réordonnancement manuel des notes, mémorisé par dossier et utilisable au clavier
 - Proposition de migrer l’ancienne note locale sans supprimer sa copie d’origine
 - Restauration du dossier mémorisé au démarrage et renouvellement de permission sans nouvelle sélection
 

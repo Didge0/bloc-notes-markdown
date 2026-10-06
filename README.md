@@ -60,10 +60,13 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 ## Fonctions
 
 - Édition Markdown avec aperçu en direct et compteur de mots
+- `Ctrl+S` enregistre immédiatement la note ouverte (`Cmd+S` sur Mac)
 - Indentation avec `Tab` et désindentation avec `Maj+Tab` dans l’éditeur
 - Continuation automatique des puces, numéros et tâches avec `Entrée`; une nouvelle tâche commence décochée
 - Sortie d’une liste avec `Entrée` ou `Retour arrière` sur un marqueur vide
 - Écran d’accueil listant les fichiers `.md` du dossier choisi
+- Réorganisation des notes par glisser-déposer avec la poignée à six points; déposer en haut ou en bas d’une ligne choisit la position
+- Ordre mémorisé par dossier; les flèches haut/bas déplacent aussi la note au clavier
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
 - Bouton Retour qui attend l’enregistrement avant de revenir à la liste
 - Suppression d’une note depuis l’accueil après confirmation

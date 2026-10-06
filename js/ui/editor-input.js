@@ -69,10 +69,16 @@
         notifyChange(editor);
     }
 
-    function bind(editor) {
+    function bind(editor, onSave) {
         editor.addEventListener("keydown", event => handleEnter(event, editor));
         editor.addEventListener("keydown", event => handleBackspace(event, editor));
         editor.addEventListener("keydown", event => handleTab(event, editor));
+        editor.addEventListener("keydown", event => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+                event.preventDefault();
+                onSave();
+            }
+        });
     }
 
     window.NoteEditorInput = { bind };

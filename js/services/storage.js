@@ -2,6 +2,7 @@
     const storageKey = "blocNotes";
     const databaseName = "bloc-notes-markdown";
     const directoryKey = "notes-directory";
+    const noteOrderKey = "notes-order";
 
     function openDatabase() {
         return new Promise((resolve, reject) => {
@@ -33,6 +34,28 @@
         }).finally(() => database.close());
     }
 
+    async function storeNoteOrder(mode, directoryHandle, order) {
+        const database = await openDatabase();
+        const record = await new Promise((resolve, reject) => {
+            const transaction = database.transaction("handles", mode);
+            const store = transaction.objectStore("handles");
+            let result = null;
+            if (mode === "readwrite") {
+                store.put({ directoryHandle, names: order }, noteOrderKey);
+            }
+            else {
+                const request = store.get(noteOrderKey);
+                request.onsuccess = () => { result = request.result || null; };
+            }
+            transaction.oncomplete = () => resolve(result);
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error("Le stockage de l’ordre a été annulé."));
+        }).finally(() => database.close());
+        if (mode === "readwrite") return true;
+        if (!record?.directoryHandle || typeof record.directoryHandle.isSameEntry !== "function") return [];
+        return await directoryHandle.isSameEntry(record.directoryHandle) && Array.isArray(record.names) ? record.names : [];
+    }
+
     function load() {
         try {
             const value = localStorage.getItem(storageKey);
@@ -60,12 +83,14 @@
     window.NoteStorage = {
         load,
         loadDirectory: () => storeHandle("readonly"),
+        loadNoteOrder: directoryHandle => storeNoteOrder("readonly", directoryHandle),
         migrationHandled,
         markMigrationHandled,
         save: note => {
             try { localStorage.setItem(storageKey, JSON.stringify(note)); return true; }
             catch { return false; }
         },
+        saveNoteOrder: (directoryHandle, order) => storeNoteOrder("readwrite", directoryHandle, order),
         saveDirectory: handle => storeHandle("readwrite", handle)
     };
 })();

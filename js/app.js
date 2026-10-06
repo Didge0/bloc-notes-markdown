@@ -60,7 +60,14 @@
 
     async function refreshNotes() {
         if (!directoryHandle) return;
-        const notes = await NoteFiles.listNotes(directoryHandle);
+        const listedNotes = await NoteFiles.listNotes(directoryHandle);
+        let savedOrder = [];
+        try { savedOrder = await NoteStorage.loadNoteOrder(directoryHandle); }
+        catch { showStatus("Impossible de charger l’ordre enregistré des notes"); }
+        const notesByName = new Map(listedNotes.map(note => [note.name, note]));
+        const notes = savedOrder.map(name => notesByName.get(name)).filter(Boolean);
+        const alreadyOrdered = new Set(notes.map(note => note.name));
+        notes.push(...listedNotes.filter(note => !alreadyOrdered.has(note.name)));
         NoteHomeView.renderNotes({
             list: notesList,
             emptyState: notesEmpty,
@@ -69,7 +76,16 @@
             notes,
             directoryName: directoryHandle.name,
             onOpen: openNote,
-            onDelete: deleteNote
+            onDelete: deleteNote,
+            onReorder: async order => {
+                try {
+                    await NoteStorage.saveNoteOrder(directoryHandle, order);
+                    await refreshNotes();
+                    showStatus("Ordre des notes enregistré");
+                } catch {
+                    showStatus("Impossible d’enregistrer l’ordre des notes");
+                }
+            }
         });
     }
 
@@ -119,6 +135,14 @@
             const saved = await saveActiveNote();
             if (saved) showStatus("Enregistré dans le dossier notes");
         }, 700);
+    }
+
+    async function saveNow() {
+        window.clearTimeout(saveTimeout);
+        if (!activeNote) return false;
+        const saved = await saveActiveNote();
+        if (saved) showStatus("Note enregistrée");
+        return saved;
     }
 
     async function returnHome() {
@@ -259,7 +283,7 @@
         }
     }
 
-    NoteEditorInput.bind(editor);
+    NoteEditorInput.bind(editor, saveNow);
     NoteEditorView.bindTaskChanges(editor, preview, wordCount, scheduleAutoSave);
     editor.addEventListener("input", () => {
         renderPreview();
