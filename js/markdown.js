@@ -63,7 +63,8 @@ function renderMarkdown(markdown) {
     const flushList = () => {
         if (!list) return;
         const className = list.task ? ' class="task-list"' : "";
-        output.push(`<${list.tag}${className}>${list.items.join("")}</${list.tag}>`);
+        const start = list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : "";
+        output.push(`<${list.tag}${className}${start}>${list.items.join("")}</${list.tag}>`);
         list = null;
     };
     const flushBlocks = () => {
@@ -92,8 +93,9 @@ function renderMarkdown(markdown) {
         const heading = line.match(/^(#{1,3})\s+(.+)$/);
         const task = line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
         const bullet = line.match(/^\s*[-*+]\s+(.*)$/);
-        const ordered = line.match(/^\s*\d+[.)]\s+(.*)$/);
+        const ordered = line.match(/^\s*(\d+)[.)](?:\s+(.*)|\s*)$/);
         const blockquote = line.match(/^\s*>\s?(.*)$/);
+        const listContinuation = list && /^(?: {2,}|\t)\S/.test(line);
 
         if (!line.trim()) {
             flushBlocks();
@@ -120,8 +122,12 @@ function renderMarkdown(markdown) {
             flushQuote();
             const tag = ordered ? "ol" : "ul";
             if (list && (list.task || list.tag !== tag)) flushList();
-            if (!list) list = { tag, task: false, items: [] };
-            list.items.push(`<li>${renderInlineMarkdown((ordered || bullet)[1])}</li>`);
+            if (!list) list = { tag, task: false, start: ordered ? Number(ordered[1]) : 1, items: [] };
+            const itemText = ordered ? (ordered[2] || "") : bullet[1];
+            list.items.push(`<li>${renderInlineMarkdown(itemText)}</li>`);
+        } else if (listContinuation) {
+            const lastItemIndex = list.items.length - 1;
+            list.items[lastItemIndex] = list.items[lastItemIndex].replace(/<\/li>$/, `<br>${renderInlineMarkdown(line.trim())}</li>`);
         } else {
             flushQuote();
             flushList();

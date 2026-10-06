@@ -44,6 +44,46 @@
         wordCount.textContent = `Mots : ${words}`;
     }
 
+    function handleEditorTab(event) {
+        if (event.key !== "Tab") return;
+        event.preventDefault();
+
+        const value = editor.value;
+        const selectionStart = editor.selectionStart;
+        const selectionEnd = editor.selectionEnd;
+        const indent = "    ";
+
+        if (selectionStart === selectionEnd) {
+            if (!event.shiftKey) {
+                editor.setRangeText(indent, selectionStart, selectionEnd, "end");
+            } else {
+                const lineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+                const lineIndent = value.slice(lineStart).match(/^(?:\t| {1,4})/)?.[0];
+                if (lineIndent) {
+                    editor.setRangeText("", lineStart, lineStart + lineIndent.length, "preserve");
+                }
+            }
+        } else {
+            const firstLineStart = value.lastIndexOf("\n", selectionStart - 1) + 1;
+            const lastSelectedPosition = selectionEnd > selectionStart && value[selectionEnd - 1] === "\n"
+                ? selectionEnd - 1
+                : Math.max(selectionStart, selectionEnd - 1);
+            const lastLineStart = value.lastIndexOf("\n", lastSelectedPosition - 1) + 1;
+            const segmentEnd = value.indexOf("\n", lastLineStart) === -1
+                ? value.length
+                : value.indexOf("\n", lastLineStart);
+            const lines = value.slice(firstLineStart, segmentEnd).split("\n");
+            const updatedLines = lines.map(line => {
+                if (!event.shiftKey) return indent + line;
+                return line.replace(/^(?:\t| {1,4})/, "");
+            });
+            const replacement = updatedLines.join("\n");
+            editor.setRangeText(replacement, firstLineStart, segmentEnd, "select");
+        }
+
+        editor.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
     async function refreshNotes() {
         if (!directoryHandle) return;
         const notes = await NoteFiles.listNotes(directoryHandle);
@@ -51,22 +91,45 @@
         notesEmpty.hidden = notes.length > 0;
         notes.forEach(note => {
             const item = document.createElement("li");
-            const button = document.createElement("button");
+            const row = document.createElement("div");
+            const openButton = document.createElement("button");
             const title = document.createElement("span");
             const fileName = document.createElement("span");
-            button.type = "button";
-            button.className = "note-link";
+            const deleteButton = document.createElement("button");
+            row.className = "note-row";
+            openButton.type = "button";
+            openButton.className = "note-link";
             title.className = "note-title";
             fileName.className = "note-filename";
+            deleteButton.type = "button";
+            deleteButton.className = "note-delete";
+            deleteButton.setAttribute("aria-label", `Supprimer ${note.name}`);
+            deleteButton.title = `Supprimer ${note.name}`;
+            deleteButton.textContent = "🗑";
             title.textContent = note.title;
             fileName.textContent = note.name;
-            button.append(title, fileName);
-            button.addEventListener("click", () => openNote(note.handle));
-            item.append(button);
+            openButton.append(title, fileName);
+            openButton.addEventListener("click", () => openNote(note.handle));
+            deleteButton.addEventListener("click", () => deleteNote(note.name));
+            row.append(openButton, deleteButton);
+            item.append(row);
             notesList.append(item);
         });
         directoryStatus.textContent = `${notes.length} note${notes.length === 1 ? "" : "s"} dans ${directoryHandle.name}`;
         createButton.disabled = false;
+    }
+
+    async function deleteNote(fileName) {
+        if (!directoryHandle || !window.confirm(`Supprimer définitivement « ${fileName} » ?`)) return;
+        try {
+            await NoteFiles.deleteNote(directoryHandle, fileName);
+            await refreshNotes();
+            showStatus(`Note « ${fileName} » supprimée`);
+        } catch (error) {
+            showStatus(error?.name === "NotAllowedError"
+                ? "Accès refusé. Réautorisez le dossier pour supprimer cette note."
+                : error.message || "Impossible de supprimer cette note.");
+        }
     }
 
     async function openNote(handle) {
@@ -239,6 +302,7 @@
         }
     }
 
+    editor.addEventListener("keydown", handleEditorTab);
     editor.addEventListener("input", () => {
         renderPreview();
         scheduleAutoSave();

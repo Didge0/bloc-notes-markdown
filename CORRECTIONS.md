@@ -27,6 +27,7 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Correction des textes français mal encodés
 - Écran d’accueil listant les notes Markdown du dossier autorisé
 - Sauvegarde du fichier actif avant le retour à l’accueil et création de notes sans collision
+- Suppression confirmée d’une note depuis sa ligne dans l’accueil
 - Proposition de migrer l’ancienne note locale sans supprimer sa copie d’origine
 
 ## Vérification

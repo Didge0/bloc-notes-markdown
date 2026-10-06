@@ -36,9 +36,11 @@ bloc-notes-markdown/
 ## Fonctions
 
 - Édition Markdown avec aperçu en direct et compteur de mots
+- Indentation avec `Tab` et désindentation avec `Maj+Tab` dans l’éditeur
 - Écran d’accueil listant les fichiers `.md` du dossier choisi
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
 - Bouton Retour qui attend l’enregistrement avant de revenir à la liste
+- Suppression d’une note depuis l’accueil après confirmation
 - Création d’une note sans remplacer un fichier du même nom
 - Import `.md`, `.markdown` ou `.txt` dans la note ouverte
 - Téléchargement en Markdown ou en HTML autonome, impression et export PDF via le navigateur

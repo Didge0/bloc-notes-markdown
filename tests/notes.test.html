@@ -46,6 +46,9 @@
                 async getFileHandle(name) {
                     if (files.has(name)) throw new Error("Le test ne doit pas écraser un fichier.");
                     return makeHandle(name);
+                },
+                async removeEntry(name) {
+                    if (!files.delete(name)) throw new Error("Fichier introuvable");
                 }
             };
             const checks = [];
@@ -63,6 +66,11 @@
             let invalidNameRejected = false;
             try { await NoteFiles.createNote(directory, "../interdit"); } catch { invalidNameRejected = true; }
             checks.push(["refuse les noms de fichier invalides", invalidNameRejected]);
+            await NoteFiles.deleteNote(directory, "Alpha.md");
+            checks.push(["supprime la note Markdown ciblée", !files.has("Alpha.md")]);
+            let nonMarkdownRejected = false;
+            try { await NoteFiles.deleteNote(directory, "ignore.txt"); } catch { nonMarkdownRejected = true; }
+            checks.push(["refuse la suppression d’un fichier non Markdown", nonMarkdownRejected]);
 
             let failures = 0;
             const list = document.getElementById("results");

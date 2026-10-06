@@ -65,5 +65,12 @@
         }
     }
 
-    window.NoteFiles = { createNote, download, getTitle, listNotes, readNote, writeNote };
+    async function deleteNote(directoryHandle, fileName) {
+        if (!/\.md$/i.test(fileName) || fileName !== fileName.split(/[\\/]/).pop()) {
+            throw new Error("Seuls les fichiers Markdown de ce dossier peuvent être supprimés.");
+        }
+        await directoryHandle.removeEntry(fileName);
+    }
+
+    window.NoteFiles = { createNote, deleteNote, download, getTitle, listNotes, readNote, writeNote };
 })();
