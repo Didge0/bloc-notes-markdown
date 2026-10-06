@@ -53,7 +53,7 @@ function renderMarkdown(markdown) {
     let code = null;
 
     const flushParagraph = () => {
-        if (paragraph.length) output.push(`<p>${renderInlineMarkdown(paragraph.join(" "))}</p>`);
+        if (paragraph.length) output.push(`<p>${paragraph.map(renderInlineMarkdown).join("<br>")}</p>`);
         paragraph = [];
     };
     const flushQuote = () => {

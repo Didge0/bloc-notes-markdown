@@ -53,6 +53,7 @@ bloc-notes-markdown/
 - Code en ligne et blocs de code entre triples accents graves
 - Listes à puces, listes numérotées et cases à cocher
 - Citations, liens et séparateurs horizontaux
+- Retours à la ligne conservés dans les paragraphes
 
 Le parseur est volontairement léger; il ne vise pas la spécification CommonMark complète. Les tableaux, images, listes imbriquées et la coloration syntaxique ne sont pas pris en charge.
 
