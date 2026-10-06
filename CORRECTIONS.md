@@ -29,6 +29,7 @@ Le projet reste ouvrable directement avec `index.html`; l’écran d’accueil a
 - Sauvegarde du fichier actif avant le retour à l’accueil et création de notes sans collision
 - Suppression confirmée d’une note depuis sa ligne dans l’accueil
 - Proposition de migrer l’ancienne note locale sans supprimer sa copie d’origine
+- Restauration du dossier mémorisé au démarrage et renouvellement de permission sans nouvelle sélection
 
 ## Vérification
 

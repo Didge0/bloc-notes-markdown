@@ -6,7 +6,7 @@ Un éditeur Markdown autonome, sans dépendance externe et utilisable hors ligne
 
 Ouvrez `index.html` dans **Chrome ou Edge**. Au premier lancement, choisissez le dossier `notes/` du projet et autorisez l’accès en lecture et écriture. Aucun serveur ni installation n’est nécessaire. Pour tester le rendu et les opérations de fichiers simulées, ouvrez `tests/markdown.test.html` et `tests/notes.test.html`.
 
-L’application ne peut pas parcourir un dossier local sans autorisation explicite. Le navigateur mémorise le dossier choisi; si l’accès n’est plus autorisé, choisissez à nouveau `notes/` depuis l’accueil. Firefox et Safari ne fournissent pas actuellement l’API nécessaire à cette gestion directe des fichiers.
+L’application ne peut pas parcourir un dossier local sans autorisation explicite. Elle mémorise le dossier choisi. Si Chrome redemande l’autorisation à l’ouverture, utilisez le bouton **Autoriser l’accès à ...** : il réutilise le dossier enregistré sans vous demander de le sélectionner à nouveau. Le bouton **Choisir un autre dossier** reste disponible séparément. Firefox et Safari ne fournissent pas actuellement l’API nécessaire à cette gestion directe des fichiers.
 
 ## Arborescence
 
@@ -59,7 +59,7 @@ Le parseur est volontairement léger; il ne vise pas la spécification CommonMar
 
 ## Fichiers et migration des données
 
-Chaque note est un fichier Markdown du dossier choisi; l’application affiche les fichiers `.md` directement dans ce dossier, sans parcourir les sous-dossiers. Le titre de liste est le premier titre Markdown `# ...`, ou le nom de fichier en son absence. Le navigateur conserve le handle du dossier dans IndexedDB, mais peut demander une nouvelle autorisation.
+Chaque note est un fichier Markdown du dossier choisi; l’application affiche les fichiers `.md` directement dans ce dossier, sans parcourir les sous-dossiers. Le titre de liste est le premier titre Markdown `# ...`, ou le nom de fichier en son absence. Le navigateur conserve le handle du dossier dans IndexedDB. Il peut demander une nouvelle autorisation, sans exiger de sélectionner de nouveau le dossier.
 
 Si une ancienne note existe dans `localStorage` sous la clé `blocNotes`, l’application propose de l’ajouter au dossier. Cette importation est facultative et ne supprime pas l’ancienne copie. Pour l’effacer manuellement, utilisez la console du navigateur :
 

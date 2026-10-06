@@ -14,7 +14,10 @@
     const notesEmpty = document.getElementById("notesEmpty");
     const fileInput = document.getElementById("hiddenFileInput");
     const createButton = document.getElementById("btnCreateNote");
+    const chooseDirectoryButton = document.getElementById("btnChooseDirectory");
+    const changeDirectoryButton = document.getElementById("btnChangeDirectory");
     let directoryHandle = null;
+    let savedDirectoryHandle = null;
     let activeNote = null;
     let saveTimeout;
     let statusTimeout;
@@ -58,6 +61,20 @@
         preview.innerHTML = MarkdownRenderer.render(editor.value);
         const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
         wordCount.textContent = `Mots : ${words}`;
+    }
+
+    function updateDirectoryButtons(connected) {
+        changeDirectoryButton.hidden = !savedDirectoryHandle;
+        if (connected) {
+            chooseDirectoryButton.textContent = "Changer de dossier";
+            changeDirectoryButton.hidden = true;
+        } else if (savedDirectoryHandle) {
+            chooseDirectoryButton.textContent = `Autoriser l’accès à « ${savedDirectoryHandle.name} »`;
+            changeDirectoryButton.hidden = false;
+        } else {
+            chooseDirectoryButton.textContent = "Choisir le dossier notes";
+            changeDirectoryButton.hidden = true;
+        }
     }
 
     function handleEditorTab(event) {
@@ -283,9 +300,11 @@
         }
     }
 
-    async function connectDirectory(handle) {
-        await requestDirectoryPermission(handle);
+    async function connectDirectory(handle, permissionGranted = false) {
+        if (!permissionGranted) await requestDirectoryPermission(handle);
         directoryHandle = handle;
+        savedDirectoryHandle = handle;
+        updateDirectoryButtons(true);
         await NoteStorage.saveDirectory(handle);
         await refreshNotes();
         await migrateLegacyNote();
@@ -297,6 +316,29 @@
             directoryStatus.textContent = "L’accès direct aux dossiers nécessite Chrome ou Edge. Vous pouvez utiliser l’import de fichier depuis un navigateur non compatible.";
             return;
         }
+        if (savedDirectoryHandle && !directoryHandle) {
+            try {
+                const permission = await savedDirectoryHandle.requestPermission({ mode: "readwrite" });
+                if (permission !== "granted") throw new DOMException("Permission refusée", "NotAllowedError");
+                await connectDirectory(savedDirectoryHandle, true);
+                showStatus("Accès au dossier rétabli");
+            } catch (error) {
+                directoryStatus.textContent = `L’accès à « ${savedDirectoryHandle.name} » n’a pas été autorisé. Vous pouvez réessayer ou choisir un autre dossier.`;
+                showStatus(error.message || "Impossible d’autoriser ce dossier");
+            }
+            return;
+        }
+        try {
+            const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "markdown-notes" });
+            await connectDirectory(handle);
+            showStatus("Dossier connecté");
+        } catch (error) {
+            if (error.name !== "AbortError") showStatus(error.message || "Impossible d’accéder à ce dossier");
+        }
+    }
+
+    async function chooseAnotherDirectory() {
+        if (typeof window.showDirectoryPicker !== "function") return;
         try {
             const handle = await window.showDirectoryPicker({ mode: "readwrite", id: "markdown-notes" });
             await connectDirectory(handle);
@@ -325,7 +367,8 @@
     });
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
     togglePreviewButton.addEventListener("click", togglePreviewOnly);
-    document.getElementById("btnChooseDirectory").addEventListener("click", chooseDirectory);
+    chooseDirectoryButton.addEventListener("click", chooseDirectory);
+    changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);
     createButton.addEventListener("click", createNote);
 
     document.getElementById("btnOpenFile").addEventListener("click", () => fileInput.click());
@@ -365,15 +408,16 @@
         try {
             const savedHandle = await NoteStorage.loadDirectory();
             if (!savedHandle) return;
+            savedDirectoryHandle = savedHandle;
             if (await savedHandle.queryPermission({ mode: "readwrite" }) === "granted") {
-                directoryHandle = savedHandle;
-                await refreshNotes();
-                await migrateLegacyNote();
-                await refreshNotes();
+                await connectDirectory(savedHandle, true);
             } else {
-                directoryStatus.textContent = `Le dossier « ${savedHandle.name} » est mémorisé. Choisissez-le à nouveau pour autoriser l’accès.`;
+                updateDirectoryButtons(false);
+                directoryStatus.textContent = `Le dossier « ${savedHandle.name} » est mémorisé. Autorisez l’accès pour afficher vos notes.`;
             }
         } catch {
+            savedDirectoryHandle = null;
+            updateDirectoryButtons(false);
             directoryStatus.textContent = "Choisissez votre dossier notes pour afficher vos fichiers Markdown.";
         }
     })();
