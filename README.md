@@ -1,10 +1,12 @@
 # Bloc-notes Markdown local
 
-Un éditeur Markdown autonome, sans dépendance externe et utilisable hors ligne. Les notes restent dans le stockage local du navigateur.
+Un éditeur Markdown autonome, sans dépendance externe et utilisable hors ligne. Les notes sont de vrais fichiers `.md` dans le dossier local que vous choisissez.
 
 ## Démarrage
 
-Ouvrez `index.html` dans un navigateur récent. Aucun serveur ni installation n’est nécessaire. Pour tester le rendu, ouvrez `tests/markdown.test.html`.
+Ouvrez `index.html` dans **Chrome ou Edge**. Au premier lancement, choisissez le dossier `notes/` du projet et autorisez l’accès en lecture et écriture. Aucun serveur ni installation n’est nécessaire. Pour tester le rendu et les opérations de fichiers simulées, ouvrez `tests/markdown.test.html` et `tests/notes.test.html`.
+
+L’application ne peut pas parcourir un dossier local sans autorisation explicite. Le navigateur mémorise le dossier choisi; si l’accès n’est plus autorisé, choisissez à nouveau `notes/` depuis l’accueil. Firefox et Safari ne fournissent pas actuellement l’API nécessaire à cette gestion directe des fichiers.
 
 ## Arborescence
 
@@ -22,8 +24,11 @@ bloc-notes-markdown/
 │   └── storage.js
 ├── examples/
 │   └── example.md
+├── notes/
+│   └── .gitkeep
 ├── tests/
-│   └── markdown.test.html
+│   ├── markdown.test.html
+│   └── notes.test.html
 ├── README.md
 └── CORRECTIONS.md
 ```
@@ -31,8 +36,11 @@ bloc-notes-markdown/
 ## Fonctions
 
 - Édition Markdown avec aperçu en direct et compteur de mots
-- Sauvegarde automatique locale et restauration à la prochaine ouverture
-- Création d’une note, import `.md`, `.markdown` ou `.txt`
+- Écran d’accueil listant les fichiers `.md` du dossier choisi
+- Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
+- Bouton Retour qui attend l’enregistrement avant de revenir à la liste
+- Création d’une note sans remplacer un fichier du même nom
+- Import `.md`, `.markdown` ou `.txt` dans la note ouverte
 - Téléchargement en Markdown ou en HTML autonome, impression et export PDF via le navigateur
 - Mise en page adaptée aux écrans étroits
 
@@ -46,24 +54,26 @@ bloc-notes-markdown/
 
 Le parseur est volontairement léger; il ne vise pas la spécification CommonMark complète. Les tableaux, images, listes imbriquées et la coloration syntaxique ne sont pas pris en charge.
 
-## Données locales
+## Fichiers et migration des données
 
-La note courante est enregistrée dans `localStorage` sous la clé `blocNotes`, avec les champs `content` et `fileName`. Pour effacer cette note, utilisez la console du navigateur :
+Chaque note est un fichier Markdown du dossier choisi; l’application affiche les fichiers `.md` directement dans ce dossier, sans parcourir les sous-dossiers. Le titre de liste est le premier titre Markdown `# ...`, ou le nom de fichier en son absence. Le navigateur conserve le handle du dossier dans IndexedDB, mais peut demander une nouvelle autorisation.
+
+Si une ancienne note existe dans `localStorage` sous la clé `blocNotes`, l’application propose de l’ajouter au dossier. Cette importation est facultative et ne supprime pas l’ancienne copie. Pour l’effacer manuellement, utilisez la console du navigateur :
 
 ```javascript
 localStorage.removeItem("blocNotes");
 ```
 
-Le navigateur détermine l’espace de stockage associé aux pages ouvertes en `file://`; conserver le même navigateur et le même fichier `index.html` permet de retrouver la note.
+Le handle sauvegardé dans IndexedDB sert à retrouver le dossier sélectionné, sous réserve de l’autorisation du navigateur. Les notes elles-mêmes restent des fichiers ordinaires que vous pouvez ouvrir ou modifier avec d’autres outils.
 
 ## Sécurité
 
-Le contenu Markdown est échappé avant d’être rendu. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. L’application ne charge aucun script tiers et n’envoie pas les notes sur un serveur.
+Le contenu Markdown est échappé avant d’être rendu. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. L’application ne charge aucun script tiers et n’envoie pas les notes sur un serveur; l’accès aux seuls fichiers choisis reste soumis à l’autorisation du navigateur.
 
 ## Tests
 
-Ouvrez `tests/markdown.test.html` directement dans le navigateur. La page exécute les cas de rendu et affiche le nombre de tests réussis, y compris des cas d’échappement HTML et de refus de lien `javascript:`.
+Ouvrez les deux pages dans `tests/` directement dans le navigateur. Elles testent le rendu Markdown et les opérations de liste, lecture, création et écriture au moyen d’un dossier simulé.
 
 ## Technologies
 
-HTML, CSS et JavaScript natifs; `localStorage`, File API et Blob API. Aucun outil de compilation n’est requis.
+HTML, CSS et JavaScript natifs; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation n’est requis.

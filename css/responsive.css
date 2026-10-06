@@ -3,7 +3,7 @@
     header h1 { font-size: 1.4rem; }
     .header-controls, #fileName { width: 100%; }
     #fileName { min-width: 0; }
-    main.container { min-height: auto; flex-direction: column; gap: 1.5rem; padding: 1rem; }
+    .container { min-height: auto; flex-direction: column; gap: 1.5rem; padding: 1rem; }
     .panel { max-height: 50vh; }
     .panel h2 { padding: 1rem; font-size: 1rem; }
     .preview-content, #editor { padding: 1rem; font-size: .9rem; }
@@ -12,6 +12,13 @@
     .preview-content h1 { font-size: 1.5rem; }
     .preview-content h2 { font-size: 1.3rem; }
     .preview-content h3 { font-size: 1.1rem; }
+    .home-view { width: calc(100% - 2rem); padding: 1.5rem 0; }
+    .home-heading { align-items: flex-start; flex-direction: column; }
+    .home-actions { width: 100%; justify-content: stretch; }
+    .home-actions .btn { min-width: 0; }
+    .editor-header { width: 100%; flex-wrap: wrap; }
+    .editor-header #fileName { min-width: 0; flex: 1; }
+    .note-link { align-items: flex-start; flex-direction: column; gap: .2rem; }
 }
 
 @media (max-width: 480px) {
@@ -22,9 +29,9 @@
 }
 
 @media print {
-    header, .status-bar, .button-bar, .editor-panel { display: none; }
+    header, .status-bar, .button-bar, .editor-panel, .home-view { display: none; }
     body { background: var(--color-white); }
-    main.container { max-width: 100%; min-height: auto; gap: 0; padding: 0; }
+    .editor-view .container { max-width: 100%; min-height: auto; gap: 0; padding: 0; }
     .preview-panel { flex: 1; border-radius: 0; box-shadow: none; }
     .preview-panel h2, .word-count { display: none; }
     .preview-content { overflow: visible; padding: 0; }

@@ -12,33 +12,52 @@
 <body>
     <header>
         <h1>📝 Bloc-notes Markdown</h1>
-        <div class="header-controls">
-            <input type="text" id="fileName" placeholder="Nom de votre note" title="Entrez le nom du fichier (sans extension)" aria-label="Nom de la note">
+        <div class="header-controls editor-header" id="editorHeader" hidden>
+            <button id="btnBackHome" class="btn btn-secondary" type="button" title="Enregistrer et revenir à l’accueil">← Retour</button>
+            <input type="text" id="fileName" placeholder="Nom de votre note" title="Fichier Markdown ouvert" aria-label="Nom de la note" readonly>
         </div>
     </header>
 
     <div id="statusBar" class="status-bar" role="status" aria-live="polite"></div>
 
-    <main class="container">
-        <section class="panel editor-panel" aria-labelledby="editorHeading">
-            <h2 id="editorHeading">Éditeur</h2>
-            <textarea id="editor" placeholder="Saisissez votre Markdown ici... Les modifications sont enregistrées automatiquement." aria-label="Contenu Markdown"></textarea>
+    <main>
+        <section id="homeView" class="home-view" aria-labelledby="homeHeading">
+            <div class="home-heading">
+                <div>
+                    <h2 id="homeHeading">Mes notes</h2>
+                    <p id="directoryStatus">Choisissez le dossier qui contient vos fichiers Markdown.</p>
+                </div>
+                <div class="home-actions">
+                    <button id="btnChooseDirectory" class="btn btn-secondary" type="button">Choisir le dossier notes</button>
+                    <button id="btnCreateNote" class="btn btn-primary" type="button" disabled>Nouvelle note</button>
+                </div>
+            </div>
+            <div id="notesEmpty" class="empty-state" hidden>Aucune note Markdown dans ce dossier.</div>
+            <ul id="notesList" class="notes-list" aria-label="Fichiers Markdown"></ul>
         </section>
 
-        <section class="panel preview-panel" aria-labelledby="previewHeading">
-            <h2 id="previewHeading">Aperçu</h2>
-            <div id="preview" class="preview-content"></div>
-            <div id="wordCount" class="word-count" aria-live="polite"></div>
+        <section id="editorView" class="editor-view" aria-label="Éditeur de note" hidden>
+            <div class="container">
+                <section class="panel editor-panel" aria-labelledby="editorHeading">
+                    <h2 id="editorHeading">Éditeur</h2>
+                    <textarea id="editor" placeholder="Saisissez votre Markdown ici... Les modifications sont enregistrées automatiquement." aria-label="Contenu Markdown"></textarea>
+                </section>
+
+                <section class="panel preview-panel" aria-labelledby="previewHeading">
+                    <h2 id="previewHeading">Aperçu</h2>
+                    <div id="preview" class="preview-content"></div>
+                    <div id="wordCount" class="word-count" aria-live="polite"></div>
+                </section>
+            </div>
+
+            <footer class="button-bar">
+                <button id="btnOpenFile" class="btn btn-secondary" title="Importer un fichier Markdown">Importer .md</button>
+                <button id="btnDownloadMd" class="btn btn-secondary" title="Télécharger une copie Markdown">Télécharger .md</button>
+                <button id="btnDownloadHtml" class="btn btn-secondary" title="Télécharger en HTML">Télécharger .html</button>
+                <button id="btnPrint" class="btn btn-secondary" title="Imprimer ou exporter en PDF">Imprimer / PDF</button>
+            </footer>
         </section>
     </main>
-
-    <footer class="button-bar">
-        <button id="btnNewNote" class="btn btn-primary" title="Créer une nouvelle note">Nouvelle note</button>
-        <button id="btnOpenFile" class="btn btn-secondary" title="Ouvrir un fichier Markdown">Ouvrir un .md</button>
-        <button id="btnDownloadMd" class="btn btn-secondary" title="Télécharger en Markdown">Télécharger .md</button>
-        <button id="btnDownloadHtml" class="btn btn-secondary" title="Télécharger en HTML">Télécharger .html</button>
-        <button id="btnPrint" class="btn btn-secondary" title="Imprimer ou exporter en PDF">Imprimer / PDF</button>
-    </footer>
 
     <input type="file" id="hiddenFileInput" accept=".md,.markdown,.txt" class="hidden-input" aria-label="Choisir un fichier Markdown">
 
