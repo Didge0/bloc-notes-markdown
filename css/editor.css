@@ -33,8 +33,14 @@
 .preview-content ul, .preview-content ol { margin: 1rem 0 1rem 2rem; }
 .preview-content li { margin-bottom: .5rem; }
 .preview-content .task-list { margin-left: 0; list-style: none; }
-.preview-content .task-list li { display: flex; align-items: center; gap: .7rem; }
-.preview-content .task-list input { width: 18px; height: 18px; accent-color: var(--color-primary); }
+.preview-content .task-list li { display: list-item; }
+.preview-content .task-list input {
+    width: 18px;
+    height: 18px;
+    margin: 0 .55rem .15rem 0;
+    accent-color: var(--color-primary);
+    vertical-align: middle;
+}
 .preview-content blockquote {
     margin: 1.5rem 0;
     padding: 1rem 1rem 1rem 1.5rem;
