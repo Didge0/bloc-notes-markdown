@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloc-notes Markdown</title>
+    <meta name="theme-color" content="#8b3a3a">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/editor.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <header>
+        <h1>📝 Bloc-notes Markdown</h1>
+        <div class="header-controls">
+            <input type="text" id="fileName" placeholder="Nom de votre note" title="Entrez le nom du fichier (sans extension)" aria-label="Nom de la note">
+        </div>
+    </header>
+
+    <div id="statusBar" class="status-bar" role="status" aria-live="polite"></div>
+
+    <main class="container">
+        <section class="panel editor-panel" aria-labelledby="editorHeading">
+            <h2 id="editorHeading">Éditeur</h2>
+            <textarea id="editor" placeholder="Saisissez votre Markdown ici... Les modifications sont enregistrées automatiquement." aria-label="Contenu Markdown"></textarea>
+        </section>
+
+        <section class="panel preview-panel" aria-labelledby="previewHeading">
+            <h2 id="previewHeading">Aperçu</h2>
+            <div id="preview" class="preview-content"></div>
+            <div id="wordCount" class="word-count" aria-live="polite"></div>
+        </section>
+    </main>
+
+    <footer class="button-bar">
+        <button id="btnNewNote" class="btn btn-primary" title="Créer une nouvelle note">Nouvelle note</button>
+        <button id="btnOpenFile" class="btn btn-secondary" title="Ouvrir un fichier Markdown">Ouvrir un .md</button>
+        <button id="btnDownloadMd" class="btn btn-secondary" title="Télécharger en Markdown">Télécharger .md</button>
+        <button id="btnDownloadHtml" class="btn btn-secondary" title="Télécharger en HTML">Télécharger .html</button>
+        <button id="btnPrint" class="btn btn-secondary" title="Imprimer ou exporter en PDF">Imprimer / PDF</button>
+    </footer>
+
+    <input type="file" id="hiddenFileInput" accept=".md,.markdown,.txt" class="hidden-input" aria-label="Choisir un fichier Markdown">
+
+    <script src="js/markdown.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/files.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+
