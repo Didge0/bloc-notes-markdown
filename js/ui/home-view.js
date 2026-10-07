@@ -1,7 +1,7 @@
 (() => {
     let draggedNote = null;
 
-    function renderNotes({ list, emptyState, directoryStatus, createButton, createFolderButton, notes, folders = [], directoryName, directoryHandle, onOpen, onLoadFolder, onCreateNote, onMoveNote, onDelete, onRename, onReorder, onError }) {
+    function renderNotes({ list, emptyState, directoryStatus, createButton, createFolderButton, notes, folders = [], directoryName, directoryHandle, onOpen, onLoadFolder, onCreateNote, onMoveNote, onDelete, onDeleteFolder, onRename, onReorder, onError }) {
         const rootStatus = () => `${notes.length} note${notes.length === 1 ? "" : "s"} et ${folders.length} dossier${folders.length === 1 ? "" : "s"} dans ${directoryName}`;
         const clearDragState = () => {
             document.querySelectorAll(".drag-target-active").forEach(element => element.classList.remove("drag-target-active"));
@@ -121,6 +121,7 @@
                 const name = document.createElement("span");
                 const kind = document.createElement("span");
                 const createNoteButton = document.createElement("button");
+                const deleteFolderButton = document.createElement("button");
                 const children = document.createElement("ul");
                 const expanded = Boolean(folder.contents);
                 item.className = "folder-item";
@@ -161,7 +162,13 @@
                 createNoteButton.title = `Créer une note dans ${folder.name}`;
                 createNoteButton.textContent = "+";
                 createNoteButton.addEventListener("click", () => onCreateNote(folder.handle));
-                row.append(toggle, createNoteButton);
+                deleteFolderButton.type = "button";
+                deleteFolderButton.className = "folder-delete";
+                deleteFolderButton.setAttribute("aria-label", `Supprimer le dossier ${folder.name}`);
+                deleteFolderButton.title = `Supprimer le dossier ${folder.name}`;
+                deleteFolderButton.textContent = "🗑";
+                deleteFolderButton.addEventListener("click", () => onDeleteFolder?.(folder.name, directoryHandle));
+                row.append(toggle, createNoteButton, deleteFolderButton);
                 children.className = "folder-children";
                 children.hidden = !expanded;
                 if (expanded) renderContents(children, folder.contents, folder.handle, depth + 1);

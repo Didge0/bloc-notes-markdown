@@ -71,6 +71,19 @@
 
     <input type="file" id="hiddenFileInput" accept=".md,.markdown,.txt" class="hidden-input" aria-label="Choisir un fichier Markdown">
 
+    <dialog id="deleteFolderDialog" aria-labelledby="deleteFolderDialogTitle" aria-describedby="deleteFolderDialogMessage">
+        <div class="folder-delete-dialog">
+            <h2 id="deleteFolderDialogTitle">Supprimer le dossier ?</h2>
+            <p id="deleteFolderDialogMessage"></p>
+            <p id="deleteFolderDialogFeedback" role="alert" hidden></p>
+            <div class="folder-delete-actions">
+                <button id="btnDeleteFolderKeep" class="btn btn-secondary" type="button">Supprimer et conserver le contenu</button>
+                <button id="btnDeleteFolderAll" class="btn btn-danger" type="button">Supprimer le dossier et son contenu</button>
+                <button id="btnCancelFolderDelete" class="btn btn-secondary" type="button">Annuler</button>
+            </div>
+        </div>
+    </dialog>
+
     <script src="js/core/markdown/parser.js"></script>
     <script src="js/core/markdown/renderer.js"></script>
     <script src="js/services/storage.js"></script>

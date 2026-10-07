@@ -139,5 +139,50 @@
         return { name: fileName, handle: targetHandle, moved: true };
     }
 
-    window.NoteFiles = { createFolder, createNote, deleteNote, download, getTitle, listDirectory, listNotes, moveNote, readNote, renameNote, writeNote };
+    async function deleteFolder(parentDirectory, folderName, preserveContents = false) {
+        if (!folderName || folderName !== folderName.split(/[\\/]/).pop()) {
+            throw new Error("Seuls les dossiers de cette liste peuvent être supprimés.");
+        }
+        if (!preserveContents) {
+            await parentDirectory.removeEntry(folderName, { recursive: true });
+            return;
+        }
+
+        const sourceDirectory = await parentDirectory.getDirectoryHandle(folderName);
+        const sourceEntries = [];
+        for await (const entry of sourceDirectory.values()) sourceEntries.push(entry);
+        for await (const existing of parentDirectory.values()) {
+            if (existing.name === folderName) continue;
+            if (sourceEntries.some(entry => entry.name.toLocaleLowerCase("fr") === existing.name.toLocaleLowerCase("fr"))) {
+                throw new Error(`Impossible de conserver le contenu : « ${existing.name} » existe déjà dans le dossier parent.`);
+            }
+        }
+
+        const createdEntries = [];
+        const copyContents = async (source, target, isRoot = false) => {
+            for await (const entry of source.values()) {
+                if (entry.kind === "directory") {
+                    if (isRoot) createdEntries.push(entry.name);
+                    const targetChild = await target.getDirectoryHandle(entry.name, { create: true });
+                    await copyContents(entry, targetChild);
+                } else {
+                    if (isRoot) createdEntries.push(entry.name);
+                    const targetFile = await target.getFileHandle(entry.name, { create: true });
+                    await writeNote(targetFile, await entry.getFile());
+                }
+            }
+        };
+
+        try {
+            await copyContents(sourceDirectory, parentDirectory, true);
+            await parentDirectory.removeEntry(folderName, { recursive: true });
+        } catch (error) {
+            for (const name of createdEntries.reverse()) {
+                try { await parentDirectory.removeEntry(name, { recursive: true }); } catch { /* Garde les copies qui n’ont pas pu être nettoyées. */ }
+            }
+            throw error;
+        }
+    }
+
+    window.NoteFiles = { createFolder, createNote, deleteFolder, deleteNote, download, getTitle, listDirectory, listNotes, moveNote, readNote, renameNote, writeNote };
 })();

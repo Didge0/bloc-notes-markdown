@@ -67,6 +67,7 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 - Écran d’accueil présentant les dossiers et notes sous forme d’arborescence dépliable
 - Création de sous-dossiers et de notes directement dans un dossier
 - Déplacement des notes entre dossiers par glisser-déposer; déposer sur la racine pour les retirer d’un sous-dossier
+- Suppression confirmée d’un dossier, avec choix d’effacer son contenu ou de le conserver dans le parent
 - Réorganisation des notes par glisser-déposer avec la poignée à six points; déposer en haut ou en bas d’une ligne choisit la position
 - Ordre mémorisé par dossier; les flèches haut/bas déplacent aussi la note au clavier
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier

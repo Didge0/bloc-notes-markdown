@@ -17,8 +17,15 @@
     const createFolderButton = document.getElementById("btnCreateFolder");
     const chooseDirectoryButton = document.getElementById("btnChooseDirectory");
     const changeDirectoryButton = document.getElementById("btnChangeDirectory");
+    const deleteFolderDialog = document.getElementById("deleteFolderDialog");
+    const deleteFolderDialogTitle = document.getElementById("deleteFolderDialogTitle");
+    const deleteFolderDialogMessage = document.getElementById("deleteFolderDialogMessage");
+    const deleteFolderDialogFeedback = document.getElementById("deleteFolderDialogFeedback");
+    const deleteFolderKeepButton = document.getElementById("btnDeleteFolderKeep");
+    const deleteFolderAllButton = document.getElementById("btnDeleteFolderAll");
     let directoryHandle = null;
     let savedDirectoryHandle = null;
+    let pendingFolderDeletion = null;
     let activeNote = null;
     let saveTimeout;
     let statusTimeout;
@@ -94,6 +101,7 @@
             onCreateNote: createNote,
             onMoveNote: moveNote,
             onDelete: deleteNote,
+            onDeleteFolder: requestFolderDeletion,
             onRename: renameFromList,
             onError: error => showStatus(error?.message || "Impossible de déplier ce dossier."),
             onReorder: async (order, ownerDirectory) => {
@@ -139,6 +147,41 @@
             showStatus(error?.name === "NotAllowedError"
                 ? "Accès refusé. Réautorisez le dossier pour supprimer cette note."
                 : error.message || "Impossible de supprimer cette note.");
+        }
+    }
+
+    function requestFolderDeletion(folderName, parentDirectory) {
+        pendingFolderDeletion = { folderName, parentDirectory };
+        deleteFolderDialogTitle.textContent = `Supprimer « ${folderName} » ?`;
+        deleteFolderDialogMessage.textContent = `Le dossier se trouve dans « ${parentDirectory.name} ». Tu peux supprimer tout son contenu, ou remonter ses fichiers et sous-dossiers dans le parent.`;
+        deleteFolderDialogFeedback.textContent = "";
+        deleteFolderDialogFeedback.hidden = true;
+        deleteFolderDialog.showModal();
+    }
+
+    async function completeFolderDeletion(preserveContents) {
+        if (!pendingFolderDeletion) return;
+        const { folderName, parentDirectory } = pendingFolderDeletion;
+        deleteFolderKeepButton.disabled = true;
+        deleteFolderAllButton.disabled = true;
+        deleteFolderDialogFeedback.textContent = "";
+        deleteFolderDialogFeedback.hidden = true;
+        try {
+            await NoteFiles.deleteFolder(parentDirectory, folderName, preserveContents);
+            deleteFolderDialog.close();
+            pendingFolderDeletion = null;
+            await refreshNotes();
+            showStatus(preserveContents
+                ? `Dossier « ${folderName} » supprimé; son contenu a été conservé dans le parent.`
+                : `Dossier « ${folderName} » et son contenu supprimés.`);
+        } catch (error) {
+            deleteFolderDialogFeedback.textContent = error?.name === "NotAllowedError"
+                ? "Accès refusé. Réautorise le dossier parent puis réessaie."
+                : error.message || "Impossible de supprimer ce dossier.";
+            deleteFolderDialogFeedback.hidden = false;
+        } finally {
+            deleteFolderKeepButton.disabled = false;
+            deleteFolderAllButton.disabled = false;
         }
     }
 
@@ -415,6 +458,10 @@
     changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);
     createButton.addEventListener("click", () => createNote());
     createFolderButton.addEventListener("click", createFolder);
+    deleteFolderKeepButton.addEventListener("click", () => completeFolderDeletion(true));
+    deleteFolderAllButton.addEventListener("click", () => completeFolderDeletion(false));
+    document.getElementById("btnCancelFolderDelete").addEventListener("click", () => deleteFolderDialog.close());
+    deleteFolderDialog.addEventListener("close", () => { pendingFolderDeletion = null; });
 
     document.getElementById("btnOpenFile").addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", async () => {

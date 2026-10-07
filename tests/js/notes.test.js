@@ -79,9 +79,9 @@
             return {
                 kind: "file",
                 name: fileName,
-                async getFile() { return { name: fileName, async text() { return content; } }; },
+                async getFile() { return { name: fileName, async text() { return typeof content === "string" ? content : await content.text(); } }; },
                 async createWritable() {
-                    return { async write(value) { content = value; }, async close() {}, async abort() {} };
+                        return { async write(value) { content = value; }, async close() {}, async abort() {} };
                 }
             };
         };
@@ -101,8 +101,21 @@
                 if (!entry) throw new Error("Fichier introuvable.");
                 return entry;
             },
-            async removeEntry(fileName) {
-                if (!entries.delete(fileName)) throw new Error("Fichier introuvable.");
+            async getDirectoryHandle(directoryName, options) {
+                let entry = entries.get(directoryName);
+                if (entry && entry.kind !== "directory") throw new Error("Un fichier porte déjà ce nom.");
+                if (!entry && options?.create) {
+                    entry = makeMemoryDirectory(directoryName);
+                    entries.set(directoryName, entry);
+                }
+                if (!entry) throw new Error("Dossier introuvable.");
+                return entry;
+            },
+            async removeEntry(entryName, options) {
+                const entry = entries.get(entryName);
+                if (!entry) throw new Error("Entrée introuvable.");
+                if (entry.kind === "directory" && entry.entries.size && !options?.recursive) throw new Error("Le dossier n’est pas vide.");
+                entries.delete(entryName);
             }
         };
     }
@@ -116,6 +129,25 @@
     try { await NoteFiles.moveNote(collisionSource, "Déjà-là.md", collisionTarget); } catch { moveCollisionRejected = true; }
     checks.push(["refuse d’écraser une note à la destination", moveCollisionRejected && collisionSource.entries.has("Déjà-là.md") && await (await collisionTarget.entries.get("Déjà-là.md").getFile()).text() === "destination"]);
     checks.push(["ignore le déplacement vers le même dossier", (await NoteFiles.moveNote(collisionSource, "Déjà-là.md", collisionSource)).moved === false]);
+
+    const preserveParent = makeMemoryDirectory("parent");
+    const preserveFolder = makeMemoryDirectory("Archives", { "garde.md": "# À garder", "info.txt": "Texte conservé" });
+    const nestedFolder = makeMemoryDirectory("Sous-dossier", { "imbrique.md": "# Imbriqué" });
+    preserveFolder.entries.set(nestedFolder.name, nestedFolder);
+    preserveParent.entries.set(preserveFolder.name, preserveFolder);
+    await NoteFiles.deleteFolder(preserveParent, "Archives", true);
+    const preservedNestedFolder = preserveParent.entries.get("Sous-dossier");
+    checks.push(["supprime un dossier en remontant tout son contenu", !preserveParent.entries.has("Archives") && await (await preserveParent.entries.get("garde.md").getFile()).text() === "# À garder" && await (await preserveParent.entries.get("info.txt").getFile()).text() === "Texte conservé" && await (await preservedNestedFolder.entries.get("imbrique.md").getFile()).text() === "# Imbriqué"]);
+    const collisionParent = makeMemoryDirectory("parent-conflit", { "garde.md": "Version parent" });
+    const collisionFolder = makeMemoryDirectory("À supprimer", { "garde.md": "Version dossier" });
+    collisionParent.entries.set(collisionFolder.name, collisionFolder);
+    let folderCollisionRejected = false;
+    try { await NoteFiles.deleteFolder(collisionParent, "À supprimer", true); } catch { folderCollisionRejected = true; }
+    checks.push(["protège les contenus en cas de nom déjà présent", folderCollisionRejected && collisionParent.entries.get("À supprimer") === collisionFolder && await (await collisionParent.entries.get("garde.md").getFile()).text() === "Version parent"]);
+    const deleteParent = makeMemoryDirectory("parent-suppression");
+    deleteParent.entries.set("Corbeille", makeMemoryDirectory("Corbeille", { "perdu.md": "à effacer" }));
+    await NoteFiles.deleteFolder(deleteParent, "Corbeille");
+    checks.push(["supprime récursivement un dossier et son contenu", !deleteParent.entries.has("Corbeille")]);
 
     const notesList = document.createElement("ul");
     notesList.className = "notes-list";
@@ -156,6 +188,7 @@
     const deepNote = { name: "profond.md", title: "Profond", handle: {} };
     let loadedFolder = null;
     let createdInFolder = null;
+    let requestedFolderDeletion = null;
     const movedNotes = [];
     NoteHomeView.renderNotes({
         list: notesList,
@@ -179,6 +212,7 @@
             movedNotes.push({ name, source, target });
             return Promise.resolve(name === "racine.md" ? rootNote : nestedNote);
         },
+        onDeleteFolder(name, parent) { requestedFolderDeletion = { name, parent }; },
         onDelete() {},
         onRename() {},
         onReorder() {}
@@ -196,6 +230,8 @@
     checks.push(["ajoute un niveau d’indentation aux dossiers imbriqués", deepNoteItem?.style.getPropertyValue("--folder-depth") === "2"]);
     notesList.querySelector(".folder-create-note").click();
     checks.push(["crée une note dans le dossier ciblé", createdInFolder === folderHandle]);
+    notesList.querySelector(".folder-delete").click();
+    checks.push(["demande la suppression du dossier et transmet son parent", requestedFolderDeletion?.name === "Archives" && requestedFolderDeletion.parent === rootHandle]);
     checks.push(["un dossier seul masque l’état vide", notesEmpty.hidden]);
     const rootNoteGrip = notesList.querySelector('[data-note-name="racine.md"] .note-drag-handle');
     const moveRootToFolder = new DataTransfer();
