@@ -37,7 +37,7 @@
     .editor-view .container { max-width: 100%; min-height: auto; gap: 0; padding: 0; }
     /* Même sélecteur que la règle mobile, qui masque l'aperçu quand la page imprimée fait moins de 768px. */
     .editor-view:not(.preview-only) .preview-panel, .preview-panel { display: flex; flex: 1; overflow: visible; border-radius: 0; box-shadow: none; }
-    .preview-panel > h2, .word-count, .drag-handle { display: none; }
+    .preview-panel > h2, .preview-panel-heading, .word-count, .drag-handle { display: none; }
     .preview-content { overflow: visible; padding: 0; }
     .preview-content a { color: var(--color-primary); }
 }

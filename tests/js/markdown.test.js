@@ -18,6 +18,10 @@
         ["texte HTML échappé", "<scr" + "ipt>alert(1)</scr" + "ipt>", "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>"],
         ["refus du lien javascript", "[ouvrir](javascript:alert)", "<p>ouvrir</p>"],
         ["lien HTTPS", "[site](https://example.com)", '<p><a href="https://example.com" target="_blank" rel="noopener noreferrer">site</a></p>'],
+        ["tableau avec alignements et emphase", "| Nom | Valeur |\n|:---|---:|\n| **A** | 12 |", '<div class="markdown-table-wrapper"><table><thead><tr><th style="text-align: left;">Nom</th><th style="text-align: right;">Valeur</th></tr></thead><tbody><tr><td style="text-align: left;"><strong>A</strong></td><td style="text-align: right;">12</td></tr></tbody></table></div>'],
+        ["image avec texte alternatif", "![schéma](images/schema.png)", '<p><img src="images/schema.png" alt="schéma" loading="lazy"></p>'],
+        ["refus de l’image javascript", "![x](javascript:alert)", "<p>![x](javascript:alert)</p>"],
+        ["citation sur plusieurs paragraphes", "> Première partie\n>\n> Deuxième partie", "<blockquote><p>Première partie</p><p>Deuxième partie</p></blockquote>"],
         ["lien SharePoint avec parenthèses", `[Correspondance Site Ordo-C](${sharePointUrl})`, `<p><a href="${sharePointUrl.replace(/&/g, "&amp;")}" target="_blank" rel="noopener noreferrer">Correspondance Site Ordo-C</a></p>`]
     ];
 

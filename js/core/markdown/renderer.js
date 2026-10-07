@@ -3,6 +3,14 @@
         const fragment = document.createDocumentFragment();
         for (const token of tokens) {
             if (token.type === "text") { fragment.append(document.createTextNode(token.value)); continue; }
+            if (token.type === "image") {
+                const image = document.createElement("img");
+                image.src = token.destination;
+                image.alt = token.alt;
+                image.loading = "lazy";
+                fragment.append(image);
+                continue;
+            }
             const tagName = { code: "code", emphasis: "em", link: "a", strike: "del", strong: "strong" }[token.type];
             const element = document.createElement(tagName);
             if (token.type === "link") {
@@ -76,9 +84,40 @@
                 element.append(renderLines(block.lines));
             } else if (block.type === "blockquote") {
                 element = document.createElement("blockquote");
-                const paragraph = document.createElement("p");
-                paragraph.append(renderLines(block.lines));
-                element.append(paragraph);
+                for (const lines of block.paragraphs) {
+                    const paragraph = document.createElement("p");
+                    paragraph.append(renderLines(lines));
+                    element.append(paragraph);
+                }
+            } else if (block.type === "table") {
+                element = document.createElement("div");
+                element.className = "markdown-table-wrapper";
+                const table = document.createElement("table");
+                const head = document.createElement("thead");
+                const headerRow = document.createElement("tr");
+                block.headers.forEach((tokens, index) => {
+                    const cell = document.createElement("th");
+                    if (block.alignments[index]) cell.style.textAlign = block.alignments[index];
+                    cell.append(renderInline(tokens));
+                    headerRow.append(cell);
+                });
+                head.append(headerRow);
+                table.append(head);
+                if (block.rows.length) {
+                    const body = document.createElement("tbody");
+                    for (const row of block.rows) {
+                        const rowElement = document.createElement("tr");
+                        row.forEach((tokens, index) => {
+                            const cell = document.createElement("td");
+                            if (block.alignments[index]) cell.style.textAlign = block.alignments[index];
+                            cell.append(renderInline(tokens));
+                            rowElement.append(cell);
+                        });
+                        body.append(rowElement);
+                    }
+                    table.append(body);
+                }
+                element.append(table);
             } else if (block.type === "horizontalRule") element = document.createElement("hr");
             else if (block.type === "codeBlock") {
                 element = document.createElement("pre");
