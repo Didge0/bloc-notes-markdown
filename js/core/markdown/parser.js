@@ -7,7 +7,7 @@
     }
 
     function parseInline(text) {
-        const pattern = /`([^`]+)`|\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*]+)\*|_([^_]+)_/g;
+        const pattern = /`([^`]+)`|\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*]+)\*|_([^_]+)_|~~([^~]+)~~/g;
         const tokens = [];
         let lastIndex = 0;
         for (const match of text.matchAll(pattern)) {
@@ -18,7 +18,8 @@
                 else tokens.push({ type: "text", value: match[2] });
             } else if (match[4] !== undefined || match[5] !== undefined) {
                 tokens.push({ type: "strong", value: match[4] ?? match[5] });
-            } else tokens.push({ type: "emphasis", value: match[6] ?? match[7] });
+            } else if (match[8] !== undefined) tokens.push({ type: "strike", value: match[8] });
+            else tokens.push({ type: "emphasis", value: match[6] ?? match[7] });
             lastIndex = match.index + match[0].length;
         }
         if (lastIndex < text.length) tokens.push({ type: "text", value: text.slice(lastIndex) });

@@ -5,6 +5,8 @@
         ["titres", "# Titre\n\n## Sous-titre\n### Niveau 3", "<h1>Titre</h1><h2>Sous-titre</h2><h3>Niveau 3</h3>"],
         ["emphase et code", "**fort** *fin* `x < y`", "<p><strong>fort</strong> <em>fin</em> <code>x &lt; y</code></p>"],
         ["retours à la ligne", "Prévu demain.\nEffectué demain.", "<p>Prévu demain.<br>Effectué demain.</p>"],
+        ["texte barré", "~~annulé~~ et **gardé**", "<p><del>annulé</del> et <strong>gardé</strong></p>"],
+        ["texte barré dans une puce", "- ~~fait~~ reste", "<ul><li><del>fait</del> reste</li></ul>"],
         ["listes à puces", "- un\n- deux", "<ul><li>un</li><li>deux</li></ul>"],
         ["liste numérotée", "1. un\n2. deux", "<ol><li>un</li><li>deux</li></ol>"],
         ["continuation de puce indentée", "- élément\n    détail", "<ul><li>élément<br>détail</li></ul>"],

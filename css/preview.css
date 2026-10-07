@@ -74,6 +74,7 @@ li:hover > .drag-handle, .markdown-section-heading:hover > .drag-handle, .drag-h
 .drag-over-into { outline: 2px dashed var(--color-primary); outline-offset: 2px; }
 .preview-content strong { color: var(--color-primary); font-weight: 700; }
 .preview-content em { color: var(--color-text-light); }
+.preview-content del { color: var(--color-text-light); text-decoration: line-through; }
 .preview-content ul, .preview-content ol { margin: 1rem 0 1rem 2rem; }
 .preview-content li { margin-bottom: .5rem; }
 .preview-content .task-list { margin-left: 0; list-style: none; }

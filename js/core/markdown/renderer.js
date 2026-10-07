@@ -3,7 +3,7 @@
         const fragment = document.createDocumentFragment();
         for (const token of tokens) {
             if (token.type === "text") { fragment.append(document.createTextNode(token.value)); continue; }
-            const tagName = { code: "code", emphasis: "em", link: "a", strong: "strong" }[token.type];
+            const tagName = { code: "code", emphasis: "em", link: "a", strike: "del", strong: "strong" }[token.type];
             const element = document.createElement(tagName);
             if (token.type === "link") {
                 element.setAttribute("href", token.destination);
