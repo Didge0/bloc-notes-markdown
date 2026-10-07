@@ -156,10 +156,21 @@
             document.body.append(frame);
             const doc = frame.contentDocument;
             doc.open();
-            doc.write(`<!DOCTYPE html><html data-theme="${theme}"><head><style>${styles.screen}</style></head><body><header id="h"></header><button class="btn btn-secondary" id="b">x</button></body></html>`);
+            doc.write(`<!DOCTYPE html><html data-theme="${theme}"><head><style>${styles.screen}</style></head><body><header id="h"></header><button class="btn btn-secondary" id="b">x</button><div class="folder-item drag-target-active"><div class="folder-row" id="folderDrop"></div></div><button class="btn btn-danger" id="danger">Supprimer</button><dialog id="dialog"></dialog><div class="preview-content"><blockquote id="quote"></blockquote><code id="code">x</code><div class="markdown-table-wrapper"><table><thead><tr><th id="tableHeader">Titre</th></tr></thead></table></div></div></body></html>`);
             doc.close();
             const view = frame.contentWindow;
-            const result = { page: view.getComputedStyle(doc.body).backgroundColor, text: view.getComputedStyle(doc.body).color, header: view.getComputedStyle(doc.getElementById("h")).backgroundColor };
+            const colorOf = id => view.getComputedStyle(doc.getElementById(id)).backgroundColor;
+            const result = {
+                page: view.getComputedStyle(doc.body).backgroundColor,
+                text: view.getComputedStyle(doc.body).color,
+                header: colorOf("h"),
+                folderDrop: colorOf("folderDrop"),
+                dangerButton: colorOf("danger"),
+                dialog: colorOf("dialog"),
+                quote: colorOf("quote"),
+                code: colorOf("code"),
+                tableHeader: colorOf("tableHeader")
+            };
             frame.remove();
             return result;
         };
@@ -167,6 +178,11 @@
         const dark = colorsFor("dark");
         addResult("le thème sombre change fond, texte et en-tête", dark.page !== light.page && dark.text !== light.text && dark.header !== light.header);
         addResult("le thème sombre a un fond sombre et un texte clair", dark.page === "rgb(26, 26, 26)" && dark.text === "rgb(230, 230, 230)");
+        addResult("le dialogue et le bouton de suppression suivent le thème", dark.dialog !== light.dialog && dark.dangerButton !== light.dangerButton);
+        addResult("les zones de dépôt suivent le thème", dark.folderDrop !== light.folderDrop);
+        addResult("les citations suivent le thème", dark.quote !== light.quote);
+        addResult("les en-têtes de tableau suivent le thème", dark.tableHeader !== light.tableHeader);
+        addResult("le code inline suit le thème", dark.code !== light.code);
 
         const previousTheme = document.documentElement.dataset.theme;
         NoteTheme.apply("dark");
