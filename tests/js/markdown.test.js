@@ -150,6 +150,30 @@
         taskDoc.getElementById("done").firstElementChild.checked = false;
         addResult("décocher la case retire la rayure", lineOf("done") === "none");
         taskFrame.remove();
+
+        const colorsFor = theme => {
+            const frame = document.createElement("iframe");
+            document.body.append(frame);
+            const doc = frame.contentDocument;
+            doc.open();
+            doc.write(`<!DOCTYPE html><html data-theme="${theme}"><head><style>${styles.screen}</style></head><body><header id="h"></header><button class="btn btn-secondary" id="b">x</button></body></html>`);
+            doc.close();
+            const view = frame.contentWindow;
+            const result = { page: view.getComputedStyle(doc.body).backgroundColor, text: view.getComputedStyle(doc.body).color, header: view.getComputedStyle(doc.getElementById("h")).backgroundColor };
+            frame.remove();
+            return result;
+        };
+        const light = colorsFor("light");
+        const dark = colorsFor("dark");
+        addResult("le thème sombre change fond, texte et en-tête", dark.page !== light.page && dark.text !== light.text && dark.header !== light.header);
+        addResult("le thème sombre a un fond sombre et un texte clair", dark.page === "rgb(26, 26, 26)" && dark.text === "rgb(230, 230, 230)");
+
+        const previousTheme = document.documentElement.dataset.theme;
+        NoteTheme.apply("dark");
+        const applied = document.documentElement.dataset.theme === "dark";
+        NoteTheme.apply("light");
+        addResult("NoteTheme applique le thème demandé", applied && document.documentElement.dataset.theme === "light");
+        if (previousTheme) document.documentElement.dataset.theme = previousTheme;
         addResult("écran étroit : seul l’éditeur est visible", narrow.editor !== "none" && narrow.preview === "none");
         const narrowPreview = displaysIn(styles.screen, "preview-only");
         addResult("écran étroit : le mode aperçu seul affiche l’aperçu", narrowPreview.editor === "none" && narrowPreview.preview !== "none");

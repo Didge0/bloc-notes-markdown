@@ -7,8 +7,38 @@
     --color-text-light: #666;
     --color-border: #ddd;
     --color-success: #267344;
+    --color-surface: #fff;
+    --color-muted: #777;
+    --color-hover: #eee0e0;
+    --color-danger: #a12e2e;
+    --color-danger-bg: #fbefef;
+    --color-danger-border: #e4bcbc;
+    --color-code-bg: #f8f8f8;
     --shadow: 0 2px 8px rgba(0, 0, 0, .08);
     --shadow-light: 0 1px 3px rgba(0, 0, 0, .05);
+}
+
+/* Écran uniquement : l'impression reste toujours en clair. */
+@media screen {
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --color-primary: #c25f5f;
+        --color-primary-light: #d27373;
+        --color-bg: #1a1a1a;
+        --color-text: #e6e6e6;
+        --color-text-light: #a8a8a8;
+        --color-border: #3d3d3d;
+        --color-success: #5fc283;
+        --color-surface: #262626;
+        --color-muted: #9a9a9a;
+        --color-hover: #3a2e2e;
+        --color-danger: #ff8a8a;
+        --color-danger-bg: #3b2323;
+        --color-danger-border: #6b3a3a;
+        --color-code-bg: #1f1f1f;
+        --shadow: 0 2px 8px rgba(0, 0, 0, .5);
+        --shadow-light: 0 1px 3px rgba(0, 0, 0, .4);
+    }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

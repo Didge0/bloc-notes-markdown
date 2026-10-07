@@ -3,11 +3,11 @@
     padding: 1.5rem;
     border: 0;
     outline: 0;
-    background: var(--color-white);
+    background: var(--color-surface);
     color: var(--color-text);
     font: .95rem/1.6 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     resize: none;
     tab-size: 4;
 }
 #editor:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
-#editor::placeholder { color: #777; }
+#editor::placeholder { color: var(--color-muted); }
