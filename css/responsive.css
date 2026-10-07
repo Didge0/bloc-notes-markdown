@@ -4,8 +4,11 @@
     .status-bar { width: 100%; min-width: 0; text-align: left; }
     .header-controls, #fileName { width: 100%; }
     #fileName { min-width: 0; }
-    .container { min-height: auto; flex-direction: column; gap: 1.5rem; padding: 1rem; }
-    .panel { max-height: 50vh; }
+    .container { min-height: calc(100vh - 220px); flex-direction: column; gap: 1.5rem; padding: 1rem; }
+    .editor-panel { min-height: calc(100vh - 220px); }
+    #editor { min-height: 0; }
+    .editor-view:not(.preview-only) .preview-panel { display: none; }
+    .panel { max-height: none; }
     .panel h2 { padding: 1rem; font-size: 1rem; }
     .preview-content, #editor { padding: 1rem; font-size: .9rem; }
     .preview-content { padding-left: 1.75rem; }
@@ -24,7 +27,6 @@
 
 @media (max-width: 480px) {
     header h1 { font-size: 1.2rem; }
-    .panel { max-height: 40vh; }
     .btn { padding: .5rem .8rem; font-size: .75rem; }
     .preview-content h1 { font-size: 1.3rem; }
 }
