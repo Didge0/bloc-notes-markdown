@@ -23,6 +23,7 @@
     let statusTimeout;
     let queuedWrite = Promise.resolve();
     let isReturning = false;
+    let isRenaming = false;
 
     function showStatus(message) {
         window.clearTimeout(statusTimeout);
@@ -81,6 +82,7 @@
             directoryName: directoryHandle.name,
             onOpen: openNote,
             onDelete: deleteNote,
+            onRename: renameFromList,
             onReorder: async order => {
                 try {
                     await NoteStorage.saveNoteOrder(directoryHandle, order);
@@ -103,6 +105,58 @@
             showStatus(error?.name === "NotAllowedError"
                 ? "Accès refusé. Réautorisez le dossier pour supprimer cette note."
                 : error.message || "Impossible de supprimer cette note.");
+        }
+    }
+
+    async function renameNoteFile(oldName, requestedName) {
+        const renamed = await NoteFiles.renameNote(directoryHandle, oldName, requestedName);
+        if (renamed.name !== oldName) {
+            try {
+                const order = await NoteStorage.loadNoteOrder(directoryHandle);
+                await NoteStorage.saveNoteOrder(directoryHandle, order.map(name => name === oldName ? renamed.name : name));
+            } catch { /* l'ordre sera simplement recalculé */ }
+        }
+        return renamed;
+    }
+
+    function renameErrorMessage(error) {
+        return error?.name === "NotAllowedError"
+            ? "Accès refusé. Réautorisez le dossier pour renommer cette note."
+            : error.message || "Impossible de renommer cette note.";
+    }
+
+    async function renameFromList(fileName) {
+        if (!directoryHandle) return;
+        const requestedName = window.prompt("Nouveau nom de la note :", fileName.replace(/\.md$/i, ""));
+        if (requestedName === null) return;
+        try {
+            await renameNoteFile(fileName, requestedName);
+            await refreshNotes();
+            showStatus("Note renommée");
+        } catch (error) {
+            showStatus(renameErrorMessage(error));
+        }
+    }
+
+    async function renameActiveNote() {
+        if (!activeNote || !directoryHandle || isRenaming) return;
+        const currentBase = activeNote.name.replace(/\.md$/i, "");
+        if (fileNameInput.value.trim() === currentBase) return;
+        isRenaming = true;
+        try {
+            if (!await saveNow()) {
+                fileNameInput.value = currentBase;
+                return;
+            }
+            const renamed = await renameNoteFile(activeNote.name, fileNameInput.value);
+            activeNote = { ...activeNote, name: renamed.name, handle: renamed.handle };
+            fileNameInput.value = renamed.name.replace(/\.md$/i, "");
+            showStatus("Note renommée");
+        } catch (error) {
+            fileNameInput.value = currentBase;
+            showStatus(renameErrorMessage(error));
+        } finally {
+            isRenaming = false;
         }
     }
 
@@ -295,6 +349,14 @@
         scheduleAutoSave();
     });
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
+    fileNameInput.addEventListener("change", renameActiveNote);
+    fileNameInput.addEventListener("keydown", event => {
+        if (event.key === "Enter") fileNameInput.blur();
+        if (event.key === "Escape" && activeNote) {
+            fileNameInput.value = activeNote.name.replace(/\.md$/i, "");
+            fileNameInput.blur();
+        }
+    });
     togglePreviewButton.addEventListener("click", () => NoteEditorView.togglePreviewOnly(editorView, togglePreviewButton, editor));
     chooseDirectoryButton.addEventListener("click", chooseDirectory);
     changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);

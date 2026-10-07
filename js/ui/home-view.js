@@ -1,5 +1,5 @@
 (() => {
-    function renderNotes({ list, emptyState, directoryStatus, createButton, notes, directoryName, onOpen, onDelete, onReorder }) {
+    function renderNotes({ list, emptyState, directoryStatus, createButton, notes, directoryName, onOpen, onDelete, onRename, onReorder }) {
         list.replaceChildren();
         emptyState.hidden = notes.length > 0;
         for (const note of notes) {
@@ -75,13 +75,20 @@
                 reordered.splice(insertionIndex, 0, moved);
                 onReorder(reordered.map(entry => entry.name));
             });
+            const renameButton = document.createElement("button");
+            renameButton.type = "button";
+            renameButton.className = "note-rename";
+            renameButton.setAttribute("aria-label", `Renommer ${note.name}`);
+            renameButton.title = `Renommer ${note.name}`;
+            renameButton.textContent = "✏️";
+            renameButton.addEventListener("click", () => onRename?.(note.name));
             deleteButton.type = "button";
             deleteButton.className = "note-delete";
             deleteButton.setAttribute("aria-label", `Supprimer ${note.name}`);
             deleteButton.title = `Supprimer ${note.name}`;
             deleteButton.textContent = "🗑";
             deleteButton.addEventListener("click", () => onDelete(note.name));
-            row.append(grip, openButton, deleteButton);
+            row.append(grip, openButton, renameButton, deleteButton);
             item.append(row);
             list.append(item);
         }

@@ -30,17 +30,42 @@
         return { name: file.name, content: await file.text(), handle: fileHandle };
     }
 
-    async function createNote(directoryHandle, requestedName) {
+    async function toFileName(directoryHandle, requestedName, currentName) {
         const baseName = requestedName.trim().replace(/\.md$/i, "");
         if (!baseName || /[<>:"/\\|?*\u0000-\u001f]/.test(baseName) || /[. ]$/.test(baseName)) {
             throw new Error("Choisissez un nom de fichier valide.");
         }
         const fileName = `${baseName}.md`;
         for await (const entry of directoryHandle.values()) {
-            if (entry.kind === "file" && entry.name.toLocaleLowerCase("fr") === fileName.toLocaleLowerCase("fr")) {
+            if (entry.kind === "file" && entry.name !== currentName && entry.name.toLocaleLowerCase("fr") === fileName.toLocaleLowerCase("fr")) {
                 throw new Error("Une note porte déjà ce nom.");
             }
         }
+        return fileName;
+    }
+
+    async function moveFile(directoryHandle, oldName, newName) {
+        const oldHandle = await directoryHandle.getFileHandle(oldName);
+        const content = await (await oldHandle.getFile()).text();
+        const handle = await directoryHandle.getFileHandle(newName, { create: true });
+        await writeNote(handle, content);
+        await directoryHandle.removeEntry(oldName);
+        return handle;
+    }
+
+    async function renameNote(directoryHandle, oldName, requestedName) {
+        const fileName = await toFileName(directoryHandle, requestedName, oldName);
+        if (fileName === oldName) return { name: oldName, handle: await directoryHandle.getFileHandle(oldName) };
+        // Un changement de casse seul vise le même fichier sur un système insensible à la casse.
+        if (fileName.toLocaleLowerCase("fr") === oldName.toLocaleLowerCase("fr")) {
+            await moveFile(directoryHandle, oldName, `${fileName}.renaming.tmp.md`);
+            return { name: fileName, handle: await moveFile(directoryHandle, `${fileName}.renaming.tmp.md`, fileName) };
+        }
+        return { name: fileName, handle: await moveFile(directoryHandle, oldName, fileName) };
+    }
+
+    async function createNote(directoryHandle, requestedName) {
+        const fileName = await toFileName(directoryHandle, requestedName);
         const handle = await directoryHandle.getFileHandle(fileName, { create: true });
         await writeNote(handle, "");
         return { name: fileName, content: "", handle };
@@ -64,5 +89,5 @@
         await directoryHandle.removeEntry(fileName);
     }
 
-    window.NoteFiles = { createNote, deleteNote, download, getTitle, listNotes, readNote, writeNote };
+    window.NoteFiles = { createNote, deleteNote, download, getTitle, listNotes, readNote, renameNote, writeNote };
 })();
