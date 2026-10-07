@@ -15,14 +15,24 @@
         return heading || fileName.replace(/\.md$/i, "") || "Note sans titre";
     }
 
-    async function listNotes(directoryHandle) {
+    async function listDirectory(directoryHandle) {
         const notes = [];
+        const directories = [];
         for await (const entry of directoryHandle.values()) {
+            if (entry.kind === "directory") {
+                directories.push({ name: entry.name, handle: entry });
+                continue;
+            }
             if (entry.kind !== "file" || !/\.md$/i.test(entry.name)) continue;
             const file = await entry.getFile();
             notes.push({ name: entry.name, title: getTitle(await file.text(), entry.name), handle: entry, modified: file.lastModified });
         }
-        return notes.sort((left, right) => left.name.localeCompare(right.name, "fr", { sensitivity: "base" }));
+        const sortByName = (left, right) => left.name.localeCompare(right.name, "fr", { sensitivity: "base" });
+        return { notes: notes.sort(sortByName), directories: directories.sort(sortByName) };
+    }
+
+    async function listNotes(directoryHandle) {
+        return (await listDirectory(directoryHandle)).notes;
     }
 
     async function readNote(fileHandle) {
@@ -71,6 +81,20 @@
         return { name: fileName, content: "", handle };
     }
 
+    async function createFolder(directoryHandle, requestedName) {
+        const folderName = requestedName.trim();
+        if (!folderName || /[<>:"/\\|?*\u0000-\u001f]/.test(folderName) || /[. ]$/.test(folderName)) {
+            throw new Error("Choisissez un nom de dossier valide.");
+        }
+        for await (const entry of directoryHandle.values()) {
+            if (entry.name.toLocaleLowerCase("fr") === folderName.toLocaleLowerCase("fr")) {
+                throw new Error("Un fichier ou dossier porte déjà ce nom.");
+            }
+        }
+        const handle = await directoryHandle.getDirectoryHandle(folderName, { create: true });
+        return { name: folderName, handle };
+    }
+
     async function writeNote(fileHandle, content) {
         const writable = await fileHandle.createWritable();
         try {
@@ -89,5 +113,31 @@
         await directoryHandle.removeEntry(fileName);
     }
 
-    window.NoteFiles = { createNote, deleteNote, download, getTitle, listNotes, readNote, renameNote, writeNote };
+    async function moveNote(sourceDirectory, fileName, targetDirectory) {
+        if (!/\.md$/i.test(fileName) || fileName !== fileName.split(/[\\/]/).pop()) {
+            throw new Error("Seuls les fichiers Markdown peuvent être déplacés.");
+        }
+        if (sourceDirectory === targetDirectory
+            || (typeof sourceDirectory.isSameEntry === "function" && await sourceDirectory.isSameEntry(targetDirectory))) {
+            return { name: fileName, moved: false };
+        }
+        for await (const entry of targetDirectory.values()) {
+            if (entry.name.toLocaleLowerCase("fr") === fileName.toLocaleLowerCase("fr")) {
+                throw new Error("Un fichier ou dossier porte déjà ce nom dans le dossier de destination.");
+            }
+        }
+        const sourceHandle = await sourceDirectory.getFileHandle(fileName);
+        const content = await (await sourceHandle.getFile()).text();
+        const targetHandle = await targetDirectory.getFileHandle(fileName, { create: true });
+        await writeNote(targetHandle, content);
+        try {
+            await sourceDirectory.removeEntry(fileName);
+        } catch (error) {
+            try { await targetDirectory.removeEntry(fileName); } catch { /* Garde la copie si le nettoyage échoue. */ }
+            throw error;
+        }
+        return { name: fileName, handle: targetHandle, moved: true };
+    }
+
+    window.NoteFiles = { createFolder, createNote, deleteNote, download, getTitle, listDirectory, listNotes, moveNote, readNote, renameNote, writeNote };
 })();

@@ -23,19 +23,37 @@
         async *values() {
             for (const [name, content] of files) yield makeHandle(name, content);
             yield { kind: "file", name: "ignore.txt" };
-            yield { kind: "directory", name: "sous-dossier" };
+            for (const folder of folders.values()) yield folder;
         },
         async getFileHandle(name) {
             if (files.has(name)) throw new Error("Le test ne doit pas écraser un fichier.");
             return makeHandle(name);
         },
+        async getDirectoryHandle(name, options) {
+            if (folders.has(name)) throw new Error("Le dossier existe déjà.");
+            if (!options?.create) throw new Error("Le dossier est introuvable.");
+            const folder = { kind: "directory", name };
+            folders.set(name, folder);
+            return folder;
+        },
         async removeEntry(name) {
             if (!files.delete(name)) throw new Error("Fichier introuvable");
         }
     };
+    const folders = new Map([["sous-dossier", { kind: "directory", name: "sous-dossier" }]]);
     const checks = [];
     const notes = await NoteFiles.listNotes(directory);
     checks.push(["filtre les fichiers Markdown", notes.length === 1 && notes[0].name === "Zeta.md"]);
+    const contents = await NoteFiles.listDirectory(directory);
+    checks.push(["liste séparément notes et dossiers", contents.notes.length === 1 && contents.directories[0]?.name === "sous-dossier"]);
+    const createdFolder = await NoteFiles.createFolder(directory, "Compte-rendu");
+    checks.push(["crée un sous-dossier", createdFolder.name === "Compte-rendu" && folders.has("Compte-rendu")]);
+    let duplicateFolderRejected = false;
+    try { await NoteFiles.createFolder(directory, "sous-dossier"); } catch { duplicateFolderRejected = true; }
+    checks.push(["refuse un dossier déjà existant", duplicateFolderRejected]);
+    let invalidFolderRejected = false;
+    try { await NoteFiles.createFolder(directory, "../interdit"); } catch { invalidFolderRejected = true; }
+    checks.push(["refuse un nom de dossier invalide", invalidFolderRejected]);
     checks.push(["utilise le nom sans H1", notes[0]?.title === "Zeta"]);
     checks.push(["extrait le premier H1", NoteFiles.getTitle("# Titre\n\nTexte", "note.md") === "Titre"]);
     checks.push(["retombe sur le nom si le H1 est vide", NoteFiles.getTitle("#   ", "note.md") === "note"]);
@@ -53,6 +71,51 @@
     let nonMarkdownRejected = false;
     try { await NoteFiles.deleteNote(directory, "ignore.txt"); } catch { nonMarkdownRejected = true; }
     checks.push(["refuse la suppression d’un fichier non Markdown", nonMarkdownRejected]);
+
+    function makeMemoryDirectory(name, initialFiles = {}) {
+        const entries = new Map();
+        const makeMemoryFile = (fileName, initialContent) => {
+            let content = initialContent;
+            return {
+                kind: "file",
+                name: fileName,
+                async getFile() { return { name: fileName, async text() { return content; } }; },
+                async createWritable() {
+                    return { async write(value) { content = value; }, async close() {}, async abort() {} };
+                }
+            };
+        };
+        for (const [fileName, content] of Object.entries(initialFiles)) entries.set(fileName, makeMemoryFile(fileName, content));
+        return {
+            kind: "directory",
+            name,
+            entries,
+            async *values() { yield* entries.values(); },
+            async getFileHandle(fileName, options) {
+                let entry = entries.get(fileName);
+                if (entry && entry.kind !== "file") throw new Error("Un dossier porte déjà ce nom.");
+                if (!entry && options?.create) {
+                    entry = makeMemoryFile(fileName, "");
+                    entries.set(fileName, entry);
+                }
+                if (!entry) throw new Error("Fichier introuvable.");
+                return entry;
+            },
+            async removeEntry(fileName) {
+                if (!entries.delete(fileName)) throw new Error("Fichier introuvable.");
+            }
+        };
+    }
+    const sourceDirectory = makeMemoryDirectory("source", { "Transfert.md": "# Contenu à conserver" });
+    const targetDirectory = makeMemoryDirectory("destination");
+    await NoteFiles.moveNote(sourceDirectory, "Transfert.md", targetDirectory);
+    checks.push(["déplace une note sans perdre son contenu", !sourceDirectory.entries.has("Transfert.md") && await (await targetDirectory.entries.get("Transfert.md").getFile()).text() === "# Contenu à conserver"]);
+    const collisionSource = makeMemoryDirectory("source-bis", { "Déjà-là.md": "source" });
+    const collisionTarget = makeMemoryDirectory("destination-bis", { "Déjà-là.md": "destination" });
+    let moveCollisionRejected = false;
+    try { await NoteFiles.moveNote(collisionSource, "Déjà-là.md", collisionTarget); } catch { moveCollisionRejected = true; }
+    checks.push(["refuse d’écraser une note à la destination", moveCollisionRejected && collisionSource.entries.has("Déjà-là.md") && await (await collisionTarget.entries.get("Déjà-là.md").getFile()).text() === "destination"]);
+    checks.push(["ignore le déplacement vers le même dossier", (await NoteFiles.moveNote(collisionSource, "Déjà-là.md", collisionSource)).moved === false]);
 
     const notesList = document.createElement("ul");
     notesList.className = "notes-list";
@@ -83,6 +146,74 @@
     const visibleOrder = () => [...notesList.querySelectorAll("li")].map(item => item.dataset.noteName);
     renderTestNotes();
     checks.push(["affiche une poignée de déplacement accessible", Boolean(notesList.querySelector(".note-drag-handle[draggable='true'][aria-keyshortcuts] .drag-grip-icon"))]);
+
+    const folderHandle = {};
+    const rootHandle = {};
+    const folderCreateButton = document.createElement("button");
+    const nestedNote = { name: "detail.md", title: "Détail", handle: {} };
+    const rootNote = { name: "racine.md", title: "Racine", handle: {} };
+    const innerFolderHandle = {};
+    const deepNote = { name: "profond.md", title: "Profond", handle: {} };
+    let loadedFolder = null;
+    let createdInFolder = null;
+    const movedNotes = [];
+    NoteHomeView.renderNotes({
+        list: notesList,
+        emptyState: notesEmpty,
+        directoryStatus,
+        createButton,
+        createFolderButton: folderCreateButton,
+        notes: [rootNote],
+        folders: [{ name: "Archives", handle: folderHandle }],
+        directoryHandle: rootHandle,
+        directoryName: "notes",
+        onOpen() {},
+        onLoadFolder(handle) {
+            loadedFolder = handle;
+            return Promise.resolve(handle === folderHandle
+                ? { notes: [nestedNote], folders: [{ name: "Sous-archives", handle: innerFolderHandle }] }
+                : { notes: [deepNote], folders: [] });
+        },
+        onCreateNote(handle) { createdInFolder = handle; },
+        onMoveNote(name, source, target) {
+            movedNotes.push({ name, source, target });
+            return Promise.resolve(name === "racine.md" ? rootNote : nestedNote);
+        },
+        onDelete() {},
+        onRename() {},
+        onReorder() {}
+    });
+    const folderToggle = notesList.querySelector(".folder-link");
+    folderToggle.click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    checks.push(["déplie un dossier sans naviguer", loadedFolder === folderHandle && notesList.querySelector(".folder-link").getAttribute("aria-expanded") === "true"]);
+    const nestedNoteItem = notesList.querySelector('[data-note-name="detail.md"]');
+    checks.push(["affiche les notes dans le dossier déplié", Boolean(nestedNoteItem)]);
+    checks.push(["indente les notes dans le dossier déplié", nestedNoteItem?.style.getPropertyValue("--folder-depth") === "1"]);
+    [...notesList.querySelectorAll(".folder-link")].find(button => button.textContent.includes("Sous-archives")).click();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    const deepNoteItem = notesList.querySelector('[data-note-name="profond.md"]');
+    checks.push(["ajoute un niveau d’indentation aux dossiers imbriqués", deepNoteItem?.style.getPropertyValue("--folder-depth") === "2"]);
+    notesList.querySelector(".folder-create-note").click();
+    checks.push(["crée une note dans le dossier ciblé", createdInFolder === folderHandle]);
+    checks.push(["un dossier seul masque l’état vide", notesEmpty.hidden]);
+    const rootNoteGrip = notesList.querySelector('[data-note-name="racine.md"] .note-drag-handle');
+    const moveRootToFolder = new DataTransfer();
+    rootNoteGrip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: moveRootToFolder }));
+    notesList.querySelector(".folder-item").dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: moveRootToFolder }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    checks.push(["déplace une note vers un dossier", movedNotes[0]?.name === "racine.md" && movedNotes[0]?.source === rootHandle && movedNotes[0]?.target === folderHandle]);
+    checks.push(["affiche la note déplacée dans le dossier cible", notesList.querySelector('[data-note-name="racine.md"]')?.parentElement?.parentElement?.classList.contains("folder-item")]);
+    const nestedNoteGrip = notesList.querySelector('[data-note-name="detail.md"] .note-drag-handle');
+    const moveNestedToRoot = new DataTransfer();
+    nestedNoteGrip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: moveNestedToRoot }));
+    directoryStatus.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: moveNestedToRoot }));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    checks.push(["retire une note d’un dossier vers la racine", movedNotes[1]?.name === "detail.md" && movedNotes[1]?.source === folderHandle && movedNotes[1]?.target === rootHandle]);
+    checks.push(["affiche la note retirée à la racine", notesList.querySelector('[data-note-name="detail.md"]')?.parentElement === notesList]);
+    notesList.querySelector(".folder-link").click();
+    checks.push(["replie un dossier déjà ouvert", notesList.querySelector(".folder-link").getAttribute("aria-expanded") === "false"]);
+    renderTestNotes();
 
     const alphaGrip = notesList.querySelector('[data-note-name="Alpha.md"] .note-drag-handle');
     const charlieRow = notesList.querySelector('[data-note-name="Charlie.md"]');

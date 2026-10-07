@@ -64,7 +64,9 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 - Indentation avec `Tab` et désindentation avec `Maj+Tab` dans l’éditeur
 - Continuation automatique des puces, numéros et tâches avec `Entrée`; une nouvelle tâche commence décochée
 - Sortie d’une liste avec `Entrée` ou `Retour arrière` sur un marqueur vide
-- Écran d’accueil listant les fichiers `.md` du dossier choisi
+- Écran d’accueil présentant les dossiers et notes sous forme d’arborescence dépliable
+- Création de sous-dossiers et de notes directement dans un dossier
+- Déplacement des notes entre dossiers par glisser-déposer; déposer sur la racine pour les retirer d’un sous-dossier
 - Réorganisation des notes par glisser-déposer avec la poignée à six points; déposer en haut ou en bas d’une ligne choisit la position
 - Ordre mémorisé par dossier; les flèches haut/bas déplacent aussi la note au clavier
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
@@ -89,7 +91,7 @@ Le parseur est volontairement léger; il ne vise pas la spécification CommonMar
 
 ## Fichiers et migration des données
 
-Chaque note est un fichier Markdown du dossier choisi; l’application affiche les fichiers `.md` directement dans ce dossier, sans parcourir les sous-dossiers. Le titre de liste est le premier titre Markdown `# ...`, ou le nom de fichier en son absence. Le navigateur conserve le handle du dossier dans IndexedDB. Il peut demander une nouvelle autorisation, sans exiger de sélectionner de nouveau le dossier.
+Chaque note est un fichier Markdown du dossier choisi ou de l’un de ses sous-dossiers. Dans l’accueil, dépliez un dossier pour afficher ses sous-dossiers et ses notes sans quitter la liste; le bouton `+` crée une note directement dans ce dossier. Le bouton **Nouveau dossier** crée un sous-dossier à la racine sélectionnée. Le titre d’une note est son premier titre Markdown `# ...`, ou son nom de fichier en son absence. Le navigateur conserve le handle du dossier racine dans IndexedDB. Il peut demander une nouvelle autorisation, sans exiger de sélectionner de nouveau le dossier.
 
 Si une ancienne note existe dans `localStorage` sous la clé `blocNotes`, l’application propose de l’ajouter au dossier. Cette importation est facultative et ne supprime pas l’ancienne copie. Pour l’effacer manuellement, utilisez la console du navigateur :
 

@@ -14,6 +14,7 @@
     const notesEmpty = document.getElementById("notesEmpty");
     const fileInput = document.getElementById("hiddenFileInput");
     const createButton = document.getElementById("btnCreateNote");
+    const createFolderButton = document.getElementById("btnCreateFolder");
     const chooseDirectoryButton = document.getElementById("btnChooseDirectory");
     const changeDirectoryButton = document.getElementById("btnChangeDirectory");
     let directoryHandle = null;
@@ -63,29 +64,41 @@
         }
     }
 
-    async function refreshNotes() {
-        if (!directoryHandle) return;
-        const listedNotes = await NoteFiles.listNotes(directoryHandle);
+    async function getDirectoryContents(handle) {
+        const { notes: listedNotes, directories } = await NoteFiles.listDirectory(handle);
         let savedOrder = [];
-        try { savedOrder = await NoteStorage.loadNoteOrder(directoryHandle); }
+        try { savedOrder = await NoteStorage.loadNoteOrder(handle); }
         catch { showStatus("Impossible de charger l’ordre enregistré des notes"); }
         const notesByName = new Map(listedNotes.map(note => [note.name, note]));
         const notes = savedOrder.map(name => notesByName.get(name)).filter(Boolean);
         const alreadyOrdered = new Set(notes.map(note => note.name));
         notes.push(...listedNotes.filter(note => !alreadyOrdered.has(note.name)));
+        return { notes, folders: directories };
+    }
+
+    async function refreshNotes() {
+        if (!directoryHandle) return;
+        const { notes, folders } = await getDirectoryContents(directoryHandle);
         NoteHomeView.renderNotes({
             list: notesList,
             emptyState: notesEmpty,
             directoryStatus,
             createButton,
+            createFolderButton,
             notes,
+            folders,
+            directoryHandle,
             directoryName: directoryHandle.name,
             onOpen: openNote,
+            onLoadFolder: loadFolder,
+            onCreateNote: createNote,
+            onMoveNote: moveNote,
             onDelete: deleteNote,
             onRename: renameFromList,
-            onReorder: async order => {
+            onError: error => showStatus(error?.message || "Impossible de déplier ce dossier."),
+            onReorder: async (order, ownerDirectory) => {
                 try {
-                    await NoteStorage.saveNoteOrder(directoryHandle, order);
+                    await NoteStorage.saveNoteOrder(ownerDirectory, order);
                     await refreshNotes();
                     showStatus("Ordre des notes enregistré");
                 } catch {
@@ -95,10 +108,31 @@
         });
     }
 
-    async function deleteNote(fileName) {
-        if (!directoryHandle || !window.confirm(`Supprimer définitivement « ${fileName} » ?`)) return;
+    async function loadFolder(handle) {
+        await requestDirectoryPermission(handle);
+        return getDirectoryContents(handle);
+    }
+
+    async function moveNote(fileName, sourceDirectory, targetDirectory) {
+        const moved = await NoteFiles.moveNote(sourceDirectory, fileName, targetDirectory);
+        if (!moved.moved) return null;
         try {
-            await NoteFiles.deleteNote(directoryHandle, fileName);
+            const sourceOrder = await NoteStorage.loadNoteOrder(sourceDirectory);
+            const targetOrder = await NoteStorage.loadNoteOrder(targetDirectory);
+            await NoteStorage.saveNoteOrder(sourceDirectory, sourceOrder.filter(name => name !== fileName));
+            if (!targetOrder.includes(fileName)) targetOrder.push(fileName);
+            await NoteStorage.saveNoteOrder(targetDirectory, targetOrder);
+        } catch {
+            showStatus("Note déplacée, mais son ordre n’a pas pu être enregistré.");
+        }
+        const note = await NoteFiles.readNote(moved.handle);
+        return { ...note, title: NoteFiles.getTitle(note.content, note.name) };
+    }
+
+    async function deleteNote(fileName, ownerDirectory = directoryHandle) {
+        if (!ownerDirectory || !window.confirm(`Supprimer définitivement « ${fileName} » ?`)) return;
+        try {
+            await NoteFiles.deleteNote(ownerDirectory, fileName);
             await refreshNotes();
             showStatus(`Note « ${fileName} » supprimée`);
         } catch (error) {
@@ -108,12 +142,12 @@
         }
     }
 
-    async function renameNoteFile(oldName, requestedName) {
-        const renamed = await NoteFiles.renameNote(directoryHandle, oldName, requestedName);
+    async function renameNoteFile(oldName, requestedName, ownerDirectory = directoryHandle) {
+        const renamed = await NoteFiles.renameNote(ownerDirectory, oldName, requestedName);
         if (renamed.name !== oldName) {
             try {
-                const order = await NoteStorage.loadNoteOrder(directoryHandle);
-                await NoteStorage.saveNoteOrder(directoryHandle, order.map(name => name === oldName ? renamed.name : name));
+                const order = await NoteStorage.loadNoteOrder(ownerDirectory);
+                await NoteStorage.saveNoteOrder(ownerDirectory, order.map(name => name === oldName ? renamed.name : name));
             } catch { /* l'ordre sera simplement recalculé */ }
         }
         return renamed;
@@ -125,12 +159,12 @@
             : error.message || "Impossible de renommer cette note.";
     }
 
-    async function renameFromList(fileName) {
-        if (!directoryHandle) return;
+    async function renameFromList(fileName, ownerDirectory = directoryHandle) {
+        if (!ownerDirectory) return;
         const requestedName = window.prompt("Nouveau nom de la note :", fileName.replace(/\.md$/i, ""));
         if (requestedName === null) return;
         try {
-            await renameNoteFile(fileName, requestedName);
+            await renameNoteFile(fileName, requestedName, ownerDirectory);
             await refreshNotes();
             showStatus("Note renommée");
         } catch (error) {
@@ -329,15 +363,30 @@
         }
     }
 
-    async function createNote() {
-        if (!directoryHandle) return;
+    async function createNote(ownerDirectory = directoryHandle) {
+        if (!ownerDirectory) return;
         const requestedName = window.prompt("Nom de la nouvelle note :");
         if (requestedName === null) return;
         try {
-            const note = await NoteFiles.createNote(directoryHandle, requestedName);
+            const note = await NoteFiles.createNote(ownerDirectory, requestedName);
             await openNote(note.handle);
         } catch (error) {
             showStatus(error.message || "Impossible de créer cette note");
+        }
+    }
+
+    async function createFolder() {
+        if (!directoryHandle) return;
+        const requestedName = window.prompt("Nom du nouveau dossier :");
+        if (requestedName === null) return;
+        try {
+            const folder = await NoteFiles.createFolder(directoryHandle, requestedName);
+            await refreshNotes();
+            showStatus(`Dossier « ${folder.name} » créé`);
+        } catch (error) {
+            showStatus(error?.name === "NotAllowedError"
+                ? "Accès refusé. Réautorisez le dossier pour créer un sous-dossier."
+                : error.message || "Impossible de créer ce dossier.");
         }
     }
 
@@ -364,7 +413,8 @@
     togglePreviewButton.addEventListener("click", () => NoteEditorView.togglePreviewOnly(editorView, togglePreviewButton, editor));
     chooseDirectoryButton.addEventListener("click", chooseDirectory);
     changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);
-    createButton.addEventListener("click", createNote);
+    createButton.addEventListener("click", () => createNote());
+    createFolderButton.addEventListener("click", createFolder);
 
     document.getElementById("btnOpenFile").addEventListener("click", () => fileInput.click());
     fileInput.addEventListener("change", async () => {
