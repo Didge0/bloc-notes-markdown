@@ -79,6 +79,7 @@ li:hover > .drag-handle, .markdown-section-heading:hover > .drag-handle, .drag-h
 .preview-content li { margin-bottom: .5rem; }
 .preview-content .task-list { margin-left: 0; list-style: none; }
 .preview-content .task-list li { display: list-item; }
+.preview-content .task-list li:has(> input:checked) { color: var(--color-text-light); text-decoration: line-through; }
 .preview-content .task-list input {
     width: 18px;
     height: 18px;

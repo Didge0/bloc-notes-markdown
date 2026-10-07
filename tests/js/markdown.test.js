@@ -135,6 +135,17 @@
             return;
         }
         const narrow = displaysIn(styles.screen, "");
+        const taskFrame = document.createElement("iframe");
+        document.body.append(taskFrame);
+        const taskDoc = taskFrame.contentDocument;
+        taskDoc.open();
+        taskDoc.write(`<style>${styles.screen}</style><div class="preview-content"><ul class="task-list"><li id="done"><input type="checkbox" checked>fait</li><li id="todo"><input type="checkbox">à faire</li></ul></div>`);
+        taskDoc.close();
+        const lineOf = id => taskFrame.contentWindow.getComputedStyle(taskDoc.getElementById(id)).textDecorationLine;
+        addResult("une case cochée raye son texte, pas une case vide", lineOf("done") === "line-through" && lineOf("todo") === "none");
+        taskDoc.getElementById("done").firstElementChild.checked = false;
+        addResult("décocher la case retire la rayure", lineOf("done") === "none");
+        taskFrame.remove();
         addResult("écran étroit : seul l’éditeur est visible", narrow.editor !== "none" && narrow.preview === "none");
         const narrowPreview = displaysIn(styles.screen, "preview-only");
         addResult("écran étroit : le mode aperçu seul affiche l’aperçu", narrowPreview.editor === "none" && narrowPreview.preview !== "none");
