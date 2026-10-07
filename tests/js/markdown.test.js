@@ -86,7 +86,67 @@
     addResult("remonte une section au-dessus d’une autre", nested?.text.startsWith("# B\nx\n\n# A"));
     addResult("refuse de déposer une section dans elle-même", NotePreviewDnd.moveSection("# A\n## B", { start: 0, end: 1, level: 1 }, { line: 1, endLine: 1, level: 2, position: "after" }) === null);
 
-    const totalTests = cases.length + 11;
-    document.getElementById("summary").textContent = `${totalTests - failures}/${totalTests} tests réussis`;
-    document.getElementById("summary").className = failures ? "fail" : "pass";
+    async function loadStyles() {
+        const names = ["tokens", "base", "editor", "preview", "responsive"];
+        const links = await Promise.all(names.map(name => new Promise((resolve, reject) => {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = `../css/${name}.css`;
+            link.onload = () => resolve(link);
+            link.onerror = () => reject(new Error(`${name}.css`));
+            document.head.append(link);
+        })));
+        try {
+            const rulesOf = link => [...link.sheet.cssRules];
+            const isPrint = rule => rule instanceof CSSMediaRule && rule.media.mediaText === "print";
+            const responsive = rulesOf(links[4]);
+            const base = links.slice(0, 4).flatMap(rulesOf).map(rule => rule.cssText).join("\n");
+            const screen = `${base}\n${responsive.filter(rule => !isPrint(rule)).map(rule => rule.cssText).join("\n")}`;
+            // Le bloc print est placé en dernier, comme dans responsive.css.
+            const print = `${screen}\n${responsive.filter(isPrint).flatMap(rule => [...rule.cssRules]).map(rule => rule.cssText).join("\n")}`;
+            return { screen, print };
+        } finally {
+            links.forEach(link => link.remove());
+        }
+    }
+
+    // Iframe de 700px : plus étroite que 768px, comme une page A4 imprimée.
+    function displaysIn(css, viewClass) {
+        const frame = document.createElement("iframe");
+        frame.style.cssText = "position:absolute;left:-9999px;width:700px;height:600px";
+        document.body.append(frame);
+        const doc = frame.contentDocument;
+        doc.open();
+        doc.write(`<style>${css}</style><header id="h"></header><main><section class="editor-view ${viewClass}"><div class="container"><section class="panel editor-panel" id="e"><h2>Éditeur</h2></section><section class="panel preview-panel" id="p"><h2 id="t">Aperçu</h2><div class="preview-content"><h2 id="c">Sous-titre</h2>Texte</div></section></div></section></main>`);
+        doc.close();
+        const display = id => frame.contentWindow.getComputedStyle(doc.getElementById(id)).display;
+        const result = { header: display("h"), editor: display("e"), preview: display("p"), panelTitle: display("t"), contentHeading: display("c") };
+        frame.remove();
+        return result;
+    }
+
+    async function runLayoutTests() {
+        let styles;
+        try { styles = await loadStyles(); }
+        catch (error) {
+            addResult(`mise en page et impression ignorées (CSS illisible : ${error.message}; servir le projet en HTTP)`, true);
+            return;
+        }
+        const narrow = displaysIn(styles.screen, "");
+        addResult("écran étroit : seul l’éditeur est visible", narrow.editor !== "none" && narrow.preview === "none");
+        const narrowPreview = displaysIn(styles.screen, "preview-only");
+        addResult("écran étroit : le mode aperçu seul affiche l’aperçu", narrowPreview.editor === "none" && narrowPreview.preview !== "none");
+        const printed = displaysIn(styles.print, "");
+        addResult("impression sur page étroite : l’aperçu est affiché", printed.preview !== "none");
+        addResult("impression : l’éditeur et l’en-tête sont masqués", printed.editor === "none" && printed.header === "none");
+        addResult("impression : les sous-titres H2 sont affichés, pas le titre du panneau", printed.contentHeading !== "none" && printed.panelTitle === "none");
+        const printedPreviewOnly = displaysIn(styles.print, "preview-only");
+        addResult("impression en aperçu seul : l’aperçu est affiché", printedPreviewOnly.preview !== "none");
+    }
+
+    runLayoutTests().finally(() => {
+        const totalTests = results.children.length;
+        document.getElementById("summary").textContent = `${totalTests - failures}/${totalTests} tests réussis`;
+        document.getElementById("summary").className = failures ? "fail" : "pass";
+    });
 })();
