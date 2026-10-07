@@ -34,6 +34,7 @@
             node.removeAttribute("data-end-line");
             node.removeAttribute("data-level");
         });
+        element.querySelectorAll("h1[id], h2[id], h3[id]").forEach(heading => heading.removeAttribute("id"));
         element.querySelectorAll(".markdown-section-heading, .markdown-section-content, .markdown-section").forEach(wrapper => {
             wrapper.replaceWith(...wrapper.childNodes);
         });
@@ -77,6 +78,54 @@
     const firstToggle = headings[0].previousElementSibling;
     addResult("le chevron expose son état accessible", firstToggle.getAttribute("aria-expanded") === "true");
     collapsiblePreview.remove();
+
+    const resizeFixture = document.createElement("div");
+    const resizeHome = document.createElement("div");
+    const resizeHeader = document.createElement("header");
+    const resizeView = document.createElement("section");
+    resizeView.hidden = true;
+    const resizeEditor = document.createElement("textarea");
+    resizeEditor.style.cssText = "width:400px;box-sizing:border-box;border:0;overflow:hidden;line-height:20px;padding:8px";
+    resizeEditor.value = Array.from({ length: 100 }, (_, index) => `ligne ${index}`).join("\n");
+    resizeView.append(resizeEditor);
+    const resizeToggle = document.createElement("button");
+    resizeToggle.innerHTML = '<span aria-hidden="true"></span><span class="preview-toggle-label"></span>';
+    resizeFixture.append(resizeHome, resizeHeader, resizeView, resizeToggle);
+    document.body.append(resizeFixture);
+    NoteEditorView.resizeEditor(resizeEditor);
+    const didNotMeasureWhileHidden = resizeEditor.style.height === "";
+    NoteEditorView.showEditor({ home: resizeHome, editorView: resizeView, header: resizeHeader, editor: resizeEditor, previewToggle: resizeToggle });
+    addResult("redimensionne l’éditeur après l’avoir rendu visible", didNotMeasureWhileHidden && resizeEditor.clientHeight > 1000 && resizeEditor.scrollHeight <= resizeEditor.clientHeight);
+    resizeFixture.remove();
+
+    const tocPreview = document.createElement("div");
+    tocPreview.className = "preview-content";
+    const tocHeadings = [
+        ["Texte et typographie — H2", "texte-et-typographie--h2"],
+        ["Listes", "listes"],
+        ["Liens et images", "liens-et-images"],
+        ["Citations", "citations"],
+        ["Code", "code"],
+        ["Tableaux GFM", "tableaux-gfm"],
+        ["Extensions courantes", "extensions-courantes"],
+        ["HTML intégré", "html-intégré"],
+        ["Cas limites", "cas-limites"]
+    ];
+    const tocMarkdown = `${tocHeadings.map(([title, slug]) => `[${title}](#${slug})`).join(" | ")}\n\n# Rubriques\n\n${tocHeadings.map(([title]) => `## ${title}\n\nContenu`).join("\n\n")}`;
+    const tocHeader = document.createElement("header");
+    tocHeader.style.height = "64px";
+    document.body.prepend(tocHeader);
+    tocPreview.append(MarkdownRenderer.render(MarkdownParser.parse(tocMarkdown)));
+    NoteEditorView.bindHeadingCollapse(tocPreview);
+    document.body.append(tocPreview);
+    const tocLinks = [...tocPreview.querySelectorAll("a[href^='#']")];
+    const tocRoot = tocPreview.querySelector(".markdown-section");
+    tocRoot.querySelector(":scope > .markdown-section-heading > .markdown-collapse-toggle").click();
+    tocLinks[7].click();
+    addResult("les neuf liens du sommaire correspondent aux ancres des titres", tocHeadings.every(([, slug]) => tocPreview.querySelector(`h1[id='${slug}'], h2[id='${slug}'], h3[id='${slug}']`)));
+    addResult("un lien interne déplie sa section et ajoute l’espace final nécessaire sous l’en-tête sticky", !tocRoot.querySelector(":scope > .markdown-section-content").hidden && !tocLinks[7].hasAttribute("target") && tocPreview.querySelector("#html-intégré").style.scrollMarginTop === "76px" && Number.parseFloat(tocPreview.querySelector(":scope > .markdown-anchor-spacer")?.style.height) > 0 && decodeURIComponent(window.location.hash.slice(1)) === "html-intégré");
+    tocPreview.remove();
+    tocHeader.remove();
 
     const dndAst = MarkdownParser.parse("# A\n\n- un\n  détail\n- deux\n\n## B\n\n1. n\n\n# C");
     const dndList = dndAst.blocks.find(block => block.type === "list");
@@ -131,6 +180,27 @@
         return result;
     }
 
+    function measuresEditorPanels(css) {
+        const frame = document.createElement("iframe");
+        frame.style.cssText = "position:absolute;left:-9999px;width:1280px;height:800px";
+        document.body.append(frame);
+        const doc = frame.contentDocument;
+        doc.open();
+        const longPreview = Array.from({ length: 60 }, (_, index) => `<p>Paragraphe ${index} avec assez de texte pour remplir plusieurs lignes dans l’aperçu.</p>`).join("");
+        doc.write(`<!DOCTYPE html><html><head><style>${css}</style></head><body><header>Bloc-notes Markdown</header><main><section id="editorView" class="editor-view"><div class="container"><section class="panel editor-panel" id="editorPanel"><h2>Éditeur</h2><textarea id="editor"></textarea></section><section class="panel preview-panel" id="previewPanel"><h2>Aperçu</h2><div class="preview-content"><h1>Titre</h1>${longPreview}</div></section></div></section></main></body></html>`);
+        doc.close();
+        const editor = doc.getElementById("editor");
+        editor.value = Array.from({ length: 100 }, (_, index) => `Ligne de texte ${index}`).join("\n");
+        NoteEditorView.resizeEditor(editor);
+        const editorHeight = doc.getElementById("editorPanel").getBoundingClientRect().height;
+        const previewHeight = doc.getElementById("previewPanel").getBoundingClientRect().height;
+        const pageScrolls = doc.documentElement.scrollHeight > 800;
+        const previewFitsContent = doc.defaultView.getComputedStyle(doc.querySelector(".preview-content")).overflowY === "visible";
+        const editorFitsContent = editor.scrollHeight <= editor.clientHeight && doc.defaultView.getComputedStyle(editor).overflowY === "hidden";
+        frame.remove();
+        return { editorHeight, previewHeight, pageScrolls, previewFitsContent, editorFitsContent };
+    }
+
     async function runLayoutTests() {
         let styles;
         try { styles = await loadStyles(); }
@@ -139,6 +209,8 @@
             return;
         }
         const narrow = displaysIn(styles.screen, "");
+        const editorPanels = measuresEditorPanels(styles.screen);
+        addResult("les panneaux grandissent avec leur contenu et seule la page défile", editorPanels.editorHeight > 0 && editorPanels.editorHeight === editorPanels.previewHeight && editorPanels.pageScrolls && editorPanels.previewFitsContent && editorPanels.editorFitsContent);
         const taskFrame = document.createElement("iframe");
         document.body.append(taskFrame);
         const taskDoc = taskFrame.contentDocument;

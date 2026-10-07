@@ -444,6 +444,7 @@
         renderPreview();
         scheduleAutoSave();
     });
+    window.addEventListener("resize", () => NoteEditorView.resizeEditor(editor));
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
     fileNameInput.addEventListener("change", renameActiveNote);
     fileNameInput.addEventListener("keydown", event => {

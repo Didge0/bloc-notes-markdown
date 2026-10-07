@@ -1,5 +1,12 @@
 (() => {
+    function resizeEditor(editor) {
+        if (!editor.getClientRects().length) return;
+        editor.style.height = "0px";
+        editor.style.height = `${editor.scrollHeight}px`;
+    }
+
     function renderMarkdown(editor, preview, wordCount) {
+        resizeEditor(editor);
         const ast = MarkdownParser.parse(editor.value);
         preview.replaceChildren(MarkdownRenderer.render(ast));
         const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
@@ -24,6 +31,46 @@
 
     function bindHeadingCollapse(preview) {
         preview.addEventListener("click", event => {
+            const link = event.target.closest("a[href^='#']");
+            if (link && preview.contains(link)) {
+                let targetId;
+                try { targetId = decodeURIComponent(link.getAttribute("href").slice(1)); }
+                catch { return; }
+                const heading = [...preview.querySelectorAll("h1[id], h2[id], h3[id]")].find(item => item.id === targetId);
+                if (!heading) return;
+                event.preventDefault();
+                for (let section = heading.closest(".markdown-section"); section && preview.contains(section); section = section.parentElement.closest(".markdown-section")) {
+                    const content = section.querySelector(":scope > .markdown-section-content");
+                    if (!content?.hidden) continue;
+                    content.hidden = false;
+                    const toggle = section.querySelector(":scope > .markdown-section-heading > .markdown-collapse-toggle");
+                    toggle?.setAttribute("aria-expanded", "true");
+                    toggle?.setAttribute("aria-label", "Replier le contenu de cette section");
+                    if (toggle) toggle.title = "Replier le contenu";
+                }
+                const stickyHeader = document.querySelector("body > header");
+                const headerOffset = stickyHeader?.getBoundingClientRect().height || 0;
+                heading.style.scrollMarginTop = `${Math.ceil(headerOffset + 12)}px`;
+                let spacer = preview.querySelector(":scope > .markdown-anchor-spacer");
+                if (spacer) spacer.style.height = "0px";
+                const scrollRoot = document.scrollingElement;
+                const targetTop = window.scrollY + heading.getBoundingClientRect().top;
+                const maxScroll = scrollRoot.scrollHeight - window.innerHeight;
+                const bottomSpace = Math.max(0, Math.ceil(targetTop - headerOffset - 12 - maxScroll));
+                if (bottomSpace) {
+                    if (!spacer) {
+                        spacer = document.createElement("div");
+                        spacer.className = "markdown-anchor-spacer";
+                        spacer.setAttribute("aria-hidden", "true");
+                        preview.append(spacer);
+                    }
+                    spacer.style.height = `${bottomSpace}px`;
+                } else spacer?.remove();
+                window.history.pushState(null, "", `#${encodeURIComponent(targetId)}`);
+                heading.scrollIntoView({ behavior: "smooth", block: "start" });
+                return;
+            }
+
             const toggle = event.target.closest(".markdown-collapse-toggle");
             if (!toggle || !preview.contains(toggle)) return;
             const section = toggle.closest(".markdown-section");
@@ -47,6 +94,7 @@
         previewToggle.title = "Afficher l’aperçu seul";
         previewToggle.querySelector("[aria-hidden='true']").textContent = "👁";
         previewToggle.querySelector(".preview-toggle-label").textContent = "Aperçu seul";
+        resizeEditor(editor);
         editor.focus();
     }
 
@@ -56,8 +104,11 @@
         button.title = previewOnly ? "Revenir au mode édition" : "Afficher l’aperçu seul";
         button.querySelector("[aria-hidden='true']").textContent = previewOnly ? "✎" : "👁";
         button.querySelector(".preview-toggle-label").textContent = previewOnly ? "Mode édition" : "Aperçu seul";
-        if (!previewOnly) editor.focus();
+        if (!previewOnly) {
+            resizeEditor(editor);
+            editor.focus();
+        }
     }
 
-    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, showEditor, togglePreviewOnly };
+    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, resizeEditor, showEditor, togglePreviewOnly };
 })();

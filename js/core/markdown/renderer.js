@@ -15,8 +15,10 @@
             const element = document.createElement(tagName);
             if (token.type === "link") {
                 element.setAttribute("href", token.destination);
-                element.setAttribute("target", "_blank");
-                element.setAttribute("rel", "noopener noreferrer");
+                if (!token.destination.startsWith("#")) {
+                    element.setAttribute("target", "_blank");
+                    element.setAttribute("rel", "noopener noreferrer");
+                }
                 element.textContent = token.label;
             } else element.textContent = token.value;
             fragment.append(element);
@@ -45,9 +47,17 @@
         return handle;
     }
 
+    function headingSlug(tokens) {
+        const text = tokens.map(token => token.type === "text" ? token.value
+            : token.type === "image" ? token.alt
+                : token.type === "link" ? token.label : token.value).join("");
+        return text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s/g, "-") || "section";
+    }
+
     function render(ast) {
         const fragment = document.createDocumentFragment();
         const sections = [];
+        const headingSlugs = new Map();
         for (const block of ast.blocks) {
             let element;
             if (block.type === "heading") {
@@ -70,6 +80,10 @@
                 chevron.setAttribute("aria-hidden", "true");
                 toggle.append(chevron);
                 const heading = document.createElement(`h${block.level}`);
+                const slug = headingSlug(block.children);
+                const slugCount = headingSlugs.get(slug) || 0;
+                headingSlugs.set(slug, slugCount + 1);
+                heading.id = slugCount ? `${slug}-${slugCount}` : slug;
                 heading.append(renderInline(block.children));
                 headingRow.append(toggle, heading, createDragHandle("Déplacer ce titre et son contenu"));
                 const content = document.createElement("div");

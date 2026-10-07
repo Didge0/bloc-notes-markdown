@@ -1,4 +1,4 @@
-.preview-content { flex: 1; overflow-y: auto; padding: 1.5rem 1.5rem 1.5rem 1.75rem; }
+.preview-content { flex: 1; overflow: visible; padding: 1.5rem 1.5rem 1.5rem 1.75rem; }
 .preview-content h1, .preview-content h2, .preview-content h3 {
     margin: 1.5rem 0 .8rem;
     color: var(--color-primary);

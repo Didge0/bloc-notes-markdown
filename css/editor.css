@@ -1,11 +1,13 @@
 #editor {
-    flex: 1;
+    flex: 1 0 auto;
+    min-height: 0;
     padding: 1.5rem;
     border: 0;
     outline: 0;
     background: var(--color-surface);
     color: var(--color-text);
     font: .95rem/1.6 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    overflow: hidden;
     resize: none;
     tab-size: 4;
 }
