@@ -344,6 +344,10 @@
     NoteEditorInput.bind(editor, saveNow);
     NoteEditorView.bindTaskChanges(editor, preview, wordCount, scheduleAutoSave);
     NoteEditorView.bindHeadingCollapse(preview);
+    NotePreviewDnd.bind(preview, editor, () => {
+        renderPreview();
+        scheduleAutoSave();
+    });
     editor.addEventListener("input", () => {
         renderPreview();
         scheduleAutoSave();

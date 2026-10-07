@@ -67,7 +67,7 @@
             if (!line.trim()) flushBlocks();
             else if (heading) {
                 flushBlocks();
-                blocks.push({ type: "heading", level: heading[1].length, children: parseInline(heading[2]) });
+                blocks.push({ type: "heading", level: heading[1].length, line: lineIndex, children: parseInline(heading[2]) });
             } else if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
                 flushBlocks();
                 blocks.push({ type: "horizontalRule" });
@@ -76,19 +76,26 @@
                 flushParagraph(); flushQuote();
                 if (list && !list.task) flushList();
                 if (!list) list = { type: "list", ordered: false, task: true, start: 1, items: [] };
-                list.items.push({ checked: task[1].toLowerCase() === "x", line: lineIndex, children: parseInline(task[2]) });
+                list.items.push({ checked: task[1].toLowerCase() === "x", line: lineIndex, endLine: lineIndex, children: parseInline(task[2]) });
             } else if (bullet || ordered) {
                 flushParagraph(); flushQuote();
                 const isOrdered = Boolean(ordered);
                 if (list && (list.task || list.ordered !== isOrdered)) flushList();
                 if (!list) list = { type: "list", ordered: isOrdered, task: false, start: isOrdered ? Number(ordered[1]) : 1, items: [] };
-                list.items.push({ children: parseInline(isOrdered ? (ordered[2] || "") : bullet[1]) });
+                list.items.push({ line: lineIndex, endLine: lineIndex, children: parseInline(isOrdered ? (ordered[2] || "") : bullet[1]) });
             } else if (listContinuation) {
-                list.items[list.items.length - 1].continuation = parseInline(line.trim());
+                const lastItem = list.items[list.items.length - 1];
+                lastItem.continuation = parseInline(line.trim());
+                lastItem.endLine = lineIndex;
             } else { flushQuote(); flushList(); paragraph.push(line.trim()); }
         }
         if (code) blocks.push({ type: "codeBlock", value: code.join("\n") });
         flushBlocks();
+        const headings = blocks.filter(block => block.type === "heading");
+        headings.forEach((current, index) => {
+            const next = headings.slice(index + 1).find(other => other.level <= current.level);
+            current.endLine = next ? next.line - 1 : lines.length - 1;
+        });
         return { type: "document", blocks };
     }
 

@@ -22,7 +22,12 @@
     let failures = 0;
     const results = document.getElementById("results");
     function normalizeRendered(element) {
-        element.querySelectorAll(".markdown-collapse-toggle").forEach(button => button.remove());
+        element.querySelectorAll(".markdown-collapse-toggle, .drag-handle").forEach(button => button.remove());
+        element.querySelectorAll("[data-line], [data-end-line], [data-level]").forEach(node => {
+            node.removeAttribute("data-line");
+            node.removeAttribute("data-end-line");
+            node.removeAttribute("data-level");
+        });
         element.querySelectorAll(".markdown-section-heading, .markdown-section-content, .markdown-section").forEach(wrapper => {
             wrapper.replaceWith(...wrapper.childNodes);
         });
@@ -67,7 +72,21 @@
     addResult("le chevron expose son état accessible", firstToggle.getAttribute("aria-expanded") === "true");
     collapsiblePreview.remove();
 
-    const totalTests = cases.length + 4;
+    const dndAst = MarkdownParser.parse("# A\n\n- un\n  détail\n- deux\n\n## B\n\n1. n\n\n# C");
+    const dndList = dndAst.blocks.find(block => block.type === "list");
+    addResult("le parser expose les plages de lignes", dndList.items[0].line === 2 && dndList.items[0].endLine === 3 && dndAst.blocks[0].endLine === 9);
+    const moveItem = NotePreviewDnd.moveListItem("- un\n  détail\n- deux", { start: 0, end: 1 }, { line: 2, endLine: 2, position: "after" });
+    addResult("déplace une puce avec sa continuation", moveItem?.text === "- deux\n- un\n  détail" && moveItem.line === 1);
+    const moveTask = NotePreviewDnd.moveListItem("- [x] fait\n\n1. un", { start: 0, end: 0 }, { line: 2, endLine: 2, position: "after" });
+    addResult("adapte le marqueur à la liste cible", moveTask?.text === "\n1. un\n1. fait");
+    addResult("refuse de déposer un élément sur lui-même", NotePreviewDnd.moveListItem("- a\n- b", { start: 0, end: 0 }, { line: 1, endLine: 1, position: "before" }) === null);
+    const moveSection = NotePreviewDnd.moveSection("# A\ntexte\n\n## B\nsous\n\n# C\nfin", { start: 0, end: 5, level: 1 }, { line: 6, endLine: 7, level: 1, position: "after" });
+    addResult("déplace un titre avec toute sa section", moveSection?.text === "# C\nfin\n\n# A\ntexte\n\n## B\nsous");
+    const nested = NotePreviewDnd.moveSection("# A\n\n# B\nx", { start: 2, end: 3, level: 1 }, { line: 0, endLine: 1, level: 1, position: "before" });
+    addResult("remonte une section au-dessus d’une autre", nested?.text.startsWith("# B\nx\n\n# A"));
+    addResult("refuse de déposer une section dans elle-même", NotePreviewDnd.moveSection("# A\n## B", { start: 0, end: 1, level: 1 }, { line: 1, endLine: 1, level: 2, position: "after" }) === null);
+
+    const totalTests = cases.length + 11;
     document.getElementById("summary").textContent = `${totalTests - failures}/${totalTests} tests réussis`;
     document.getElementById("summary").className = failures ? "fail" : "pass";
 })();

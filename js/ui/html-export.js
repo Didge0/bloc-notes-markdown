@@ -1,5 +1,5 @@
 (() => {
-    const exportStyles = `body{max-width:900px;margin:2rem auto;padding:0 1.5rem;color:#333;font:16px/1.6 sans-serif}h1,h2,h3{color:#8b3a3a}pre{overflow-x:auto;padding:1rem;background:#f5f5f5}code{padding:.15rem .3rem;background:#f0e5e5}pre code{padding:0;background:transparent}blockquote{border-left:4px solid #8b3a3a;padding-left:1rem;color:#666}.task-list{list-style:none;padding-left:0}a{color:#8b3a3a}`;
+    const exportStyles = `body{max-width:900px;margin:2rem auto;padding:0 1.5rem;color:#333;font:16px/1.6 sans-serif}h1,h2,h3{color:#8b3a3a}pre{overflow-x:auto;padding:1rem;background:#f5f5f5}code{padding:.15rem .3rem;background:#f0e5e5}pre code{padding:0;background:transparent}blockquote{border-left:4px solid #8b3a3a;padding-left:1rem;color:#666}.task-list{list-style:none;padding-left:0}.drag-handle{display:none}a{color:#8b3a3a}`;
 
     function build(title, content) {
         const exported = document.implementation.createHTMLDocument("");

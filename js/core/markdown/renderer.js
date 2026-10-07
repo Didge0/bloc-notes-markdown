@@ -25,6 +25,18 @@
         return fragment;
     }
 
+    function createDragHandle(label) {
+        const handle = document.createElement("button");
+        handle.type = "button";
+        handle.className = "drag-handle";
+        handle.draggable = true;
+        handle.textContent = "⠿";
+        handle.setAttribute("aria-label", label);
+        handle.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown");
+        handle.title = `${label} : glisser, ou flèches haut et bas au clavier`;
+        return handle;
+    }
+
     function render(ast) {
         const fragment = document.createDocumentFragment();
         const sections = [];
@@ -34,6 +46,9 @@
                 while (sections.length && sections[sections.length - 1].level >= block.level) sections.pop();
                 const section = document.createElement("div");
                 section.className = "markdown-section";
+                section.dataset.line = String(block.line);
+                section.dataset.endLine = String(block.endLine);
+                section.dataset.level = String(block.level);
                 const headingRow = document.createElement("div");
                 headingRow.className = "markdown-section-heading";
                 const toggle = document.createElement("button");
@@ -48,7 +63,7 @@
                 toggle.append(chevron);
                 const heading = document.createElement(`h${block.level}`);
                 heading.append(renderInline(block.children));
-                headingRow.append(toggle, heading);
+                headingRow.append(toggle, heading, createDragHandle("Déplacer ce titre et son contenu"));
                 const content = document.createElement("div");
                 content.className = "markdown-section-content";
                 section.append(headingRow, content);
@@ -86,6 +101,9 @@
                     }
                     listItem.append(renderInline(item.children));
                     if (item.continuation) listItem.append(document.createElement("br"), renderInline(item.continuation));
+                    listItem.dataset.line = String(item.line);
+                    listItem.dataset.endLine = String(item.endLine);
+                    listItem.append(createDragHandle("Déplacer cet élément"));
                     element.append(listItem);
                 }
             }
