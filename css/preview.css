@@ -1,5 +1,5 @@
 .preview-content { flex: 1; overflow: visible; padding: 1.5rem 1.5rem 1.5rem 1.75rem; }
-.preview-content h1, .preview-content h2, .preview-content h3 {
+.preview-content h1, .preview-content h2, .preview-content h3, .preview-content h4, .preview-content h5, .preview-content h6 {
     margin: 1.5rem 0 .8rem;
     color: var(--color-primary);
     font-weight: 700;
@@ -14,8 +14,11 @@
     font-size: 1.6rem;
 }
 .preview-content h3 { font-size: 1.3rem; }
+.preview-content h4 { font-size: 1.15rem; }
+.preview-content h5 { font-size: 1.05rem; }
+.preview-content h6 { font-size: 1rem; }
 .markdown-section-heading { position: relative; }
-.markdown-section-heading h1, .markdown-section-heading h2, .markdown-section-heading h3 { min-width: 0; }
+.markdown-section-heading h1, .markdown-section-heading h2, .markdown-section-heading h3, .markdown-section-heading h4, .markdown-section-heading h5, .markdown-section-heading h6 { min-width: 0; }
 .markdown-collapse-toggle {
     display: grid;
     position: absolute;

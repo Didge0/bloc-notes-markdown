@@ -36,7 +36,7 @@
                 let targetId;
                 try { targetId = decodeURIComponent(link.getAttribute("href").slice(1)); }
                 catch { return; }
-                const heading = [...preview.querySelectorAll("h1[id], h2[id], h3[id]")].find(item => item.id === targetId);
+                const heading = [...preview.querySelectorAll("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]")].find(item => item.id === targetId);
                 if (!heading) return;
                 event.preventDefault();
                 for (let section = heading.closest(".markdown-section"); section && preview.contains(section); section = section.parentElement.closest(".markdown-section")) {

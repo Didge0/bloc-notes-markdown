@@ -1,8 +1,13 @@
 (() => {
     function renderInline(tokens) {
         const fragment = document.createDocumentFragment();
+        const entityDecoder = document.createElement("textarea");
         for (const token of tokens) {
-            if (token.type === "text") { fragment.append(document.createTextNode(token.value)); continue; }
+            if (token.type === "text") {
+                entityDecoder.innerHTML = token.value;
+                fragment.append(document.createTextNode(entityDecoder.value));
+                continue;
+            }
             if (token.type === "image") {
                 const image = document.createElement("img");
                 image.src = token.destination;
@@ -11,7 +16,7 @@
                 fragment.append(image);
                 continue;
             }
-            const tagName = { code: "code", emphasis: "em", link: "a", strike: "del", strong: "strong" }[token.type];
+            const tagName = { code: "code", emphasis: "em", link: "a", strike: "del", strong: "strong", strongEmphasis: "strong" }[token.type];
             const element = document.createElement(tagName);
             if (token.type === "link") {
                 element.setAttribute("href", token.destination);
@@ -20,6 +25,11 @@
                     element.setAttribute("rel", "noopener noreferrer");
                 }
                 element.textContent = token.label;
+            } else if (token.type === "strong" || token.type === "emphasis") element.append(renderInline(token.children));
+            else if (token.type === "strongEmphasis") {
+                const emphasis = document.createElement("em");
+                emphasis.append(renderInline(token.children));
+                element.append(emphasis);
             } else element.textContent = token.value;
             fragment.append(element);
         }
@@ -50,7 +60,8 @@
     function headingSlug(tokens) {
         const text = tokens.map(token => token.type === "text" ? token.value
             : token.type === "image" ? token.alt
-                : token.type === "link" ? token.label : token.value).join("");
+                : token.type === "link" ? token.label
+                    : token.children ? headingSlug(token.children) : token.value).join("");
         return text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, "").replace(/\s/g, "-") || "section";
     }
 

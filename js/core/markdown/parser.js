@@ -13,26 +13,112 @@
         return !scheme || ["http", "https"].includes(scheme[1].toLowerCase());
     }
 
-    function parseInline(text) {
-        const pattern = /`([^`]+)`|!\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+)\)|\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+)\)|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*]+)\*|_([^_]+)_|~~([^~]+)~~/g;
-        const tokens = [];
-        let lastIndex = 0;
-        for (const match of text.matchAll(pattern)) {
-            if (match.index > lastIndex) tokens.push({ type: "text", value: text.slice(lastIndex, match.index) });
-            if (match[1] !== undefined) tokens.push({ type: "code", value: match[1] });
-            else if (match[2] !== undefined) {
-                if (isSafeImage(match[3])) tokens.push({ type: "image", alt: match[2], destination: match[3].trim() });
-                else tokens.push({ type: "text", value: match[0] });
-            } else if (match[4] !== undefined) {
-                if (isSafeLink(match[5])) tokens.push({ type: "link", label: match[4], destination: match[5].trim() });
-                else tokens.push({ type: "text", value: match[4] });
-            } else if (match[6] !== undefined || match[7] !== undefined) {
-                tokens.push({ type: "strong", value: match[6] ?? match[7] });
-            } else if (match[10] !== undefined) tokens.push({ type: "strike", value: match[10] });
-            else tokens.push({ type: "emphasis", value: match[8] ?? match[9] });
-            lastIndex = match.index + match[0].length;
+    function isEscapable(character) {
+        return /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/u.test(character);
+    }
+
+    function closingDelimiter(text, delimiter, start) {
+        let index = text.indexOf(delimiter, start);
+        while (index !== -1) {
+            const previous = text[index - 1] || "";
+            const next = text[index + delimiter.length] || "";
+            const escaped = text.slice(0, index).match(/\\+$/)?.[0].length % 2 === 1;
+            const adjacentMarker = previous === delimiter[0] || next === delimiter[0];
+            let markerRunStart = index;
+            while (text[markerRunStart - 1] === delimiter[0]) markerRunStart -= 1;
+            const runBeforeMarker = text[markerRunStart - 1] || "";
+            const nestedClosingMarker = delimiter.length === 1 && previous === delimiter[0] && next !== delimiter[0]
+                && /[^\s]/u.test(runBeforeMarker);
+            if (!escaped && (!adjacentMarker || nestedClosingMarker) && !/\s/u.test(text[index - 1] || "")) return index;
+            index = text.indexOf(delimiter, index + 1);
         }
-        if (lastIndex < text.length) tokens.push({ type: "text", value: text.slice(lastIndex) });
+        return -1;
+    }
+
+    function parseInline(text) {
+        const tokens = [];
+        let plain = "";
+        const flushText = () => {
+            if (plain) tokens.push({ type: "text", value: plain });
+            plain = "";
+        };
+        for (let index = 0; index < text.length;) {
+            if (text[index] === "\\" && index + 1 < text.length && isEscapable(text[index + 1])) {
+                const escaped = text[index + 1];
+                plain += escaped;
+                index += 2;
+                if ("*_~`".includes(escaped)) {
+                    while (text[index] === escaped) {
+                        plain += escaped;
+                        index += 1;
+                    }
+                }
+                continue;
+            }
+
+            if (text[index] === "`") {
+                let delimiterEnd = index;
+                while (text[delimiterEnd] === "`") delimiterEnd += 1;
+                const delimiter = text.slice(index, delimiterEnd);
+                let closing = text.indexOf(delimiter, delimiterEnd);
+                while (closing !== -1 && (text[closing - 1] === "`" || text[closing + delimiter.length] === "`")) {
+                    closing = text.indexOf(delimiter, closing + 1);
+                }
+                if (closing !== -1) {
+                    flushText();
+                    let value = text.slice(delimiterEnd, closing).replace(/\n/g, " ");
+                    if (/^ .* $/u.test(value) && /\S/u.test(value)) value = value.slice(1, -1);
+                    tokens.push({ type: "code", value });
+                    index = closing + delimiter.length;
+                    continue;
+                }
+            }
+
+            const image = text.slice(index).match(/^!\[([^\]]*)\]\(((?:[^()\s]|\([^()\s]*\))+?)\)/);
+            const link = text.slice(index).match(/^\[([^\]]+)\]\(((?:[^()\s]|\([^()\s]*\))+?)\)/);
+            if (image) {
+                const destination = image[2].trim();
+                if (isSafeImage(destination)) {
+                    flushText();
+                    tokens.push({ type: "image", alt: image[1], destination });
+                } else plain += image[0];
+                index += image[0].length;
+                continue;
+            }
+            if (link) {
+                const destination = link[2].trim();
+                flushText();
+                tokens.push(isSafeLink(destination)
+                    ? { type: "link", label: link[1], destination }
+                    : { type: "text", value: link[1] });
+                index += link[0].length;
+                continue;
+            }
+
+            const delimiters = ["***", "___", "**", "__", "~~", "*", "_"];
+            const delimiter = delimiters.find(candidate => text.startsWith(candidate, index));
+            const underscoreOpener = delimiter?.[0] !== "_" || !/[\p{L}\p{N}]/u.test(text[index - 1] || "");
+            if (delimiter && underscoreOpener) {
+                const closing = closingDelimiter(text, delimiter, index + delimiter.length);
+                if (closing !== -1) {
+                    const content = text.slice(index + delimiter.length, closing);
+                    if (content && !/^\s|\s$/u.test(content)) {
+                        flushText();
+                        const children = parseInline(content);
+                        const type = delimiter.length === 3 ? "strongEmphasis"
+                            : delimiter[0] === "~" ? "strike"
+                                : delimiter.length === 2 ? "strong" : "emphasis";
+                        tokens.push(type === "strike" ? { type, value: content } : { type, children });
+                        index = closing + delimiter.length;
+                        continue;
+                    }
+                }
+            }
+
+            plain += text[index];
+            index += 1;
+        }
+        flushText();
         return tokens;
     }
 
@@ -94,7 +180,7 @@
             }
             if (/^\s*```/.test(line)) { flushBlocks(); code = []; continue; }
 
-            const heading = line.match(/^(#{1,3})\s+(.+)$/);
+            const heading = line.match(/^(#{1,6})\s+(.+)$/);
             const task = line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
             const bullet = line.match(/^\s*[-*+]\s+(.*)$/);
             const ordered = line.match(/^\s*(\d+)[.)](?:\s+(.*)|\s*)$/);
@@ -144,7 +230,7 @@
                 const lastItem = list.items[list.items.length - 1];
                 lastItem.continuation = parseInline(line.trim());
                 lastItem.endLine = lineIndex;
-            } else { flushQuote(); flushList(); paragraph.push(line.trim()); }
+            } else { flushQuote(); flushList(); paragraph.push(line.trim().replace(/\\$/, "")); }
         }
         if (code) blocks.push({ type: "codeBlock", value: code.join("\n") });
         flushBlocks();

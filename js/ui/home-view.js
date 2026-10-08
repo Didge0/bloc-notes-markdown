@@ -137,7 +137,7 @@
                 name.className = "folder-name";
                 name.textContent = folder.name;
                 kind.className = "folder-kind";
-                kind.textContent = "Dossier";
+                //kind.textContent = "Dossier";
                 toggle.append(icon, name, kind);
                 toggle.addEventListener("click", async () => {
                     if (folder.contents) {

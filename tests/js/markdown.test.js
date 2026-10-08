@@ -2,9 +2,13 @@
     const sharePointUrl = "https://sncf.sharepoint.com/:x:/r/sites/TELEDIAG_SPDC/Documents%20partages/Affaires/ORDO_ordo%20correctif%20(SC-2019-00425)/02%20-%20Documentation%20donn%C3%A9es%20entr%C3%A9e%20et%20process/04%20-%20Donnees%20STF%20pour%20utilisation%20OrdoC/Correspondance%20Site%20Ordo%20C.xlsx?d=w745aa0f3f00a4bb39bfad35f31539f0b&csf=1&web=1&e=bgplHq";
     const cases = [
         ["contenu vide", "", ""],
-        ["titres", "# Titre\n\n## Sous-titre\n### Niveau 3", "<h1>Titre</h1><h2>Sous-titre</h2><h3>Niveau 3</h3>"],
+        ["titres", "# Titre\n\n## Sous-titre\n### Niveau 3\n#### Niveau 4\n##### Niveau 5\n###### Niveau 6", "<h1>Titre</h1><h2>Sous-titre</h2><h3>Niveau 3</h3><h4>Niveau 4</h4><h5>Niveau 5</h5><h6>Niveau 6</h6>"],
         ["emphase et code", "**fort** *fin* `x < y`", "<p><strong>fort</strong> <em>fin</em> <code>x &lt; y</code></p>"],
-        ["retours à la ligne", "Prévu demain.\nEffectué demain.", "<p>Prévu demain.<br>Effectué demain.</p>"],
+        ["emphase imbriquée", "***fort italique*** et **fort avec _italique_ et `code`**, puis *italique avec **fort***", "<p><strong><em>fort italique</em></strong> et <strong>fort avec <em>italique</em> et <code>code</code></strong>, puis <em>italique avec <strong>fort</strong></em></p>"],
+        ["code inline avec plusieurs accents graves", "``un ` caractère`` et `` `espaces conservées` ``", "<p><code>un ` caractère</code> et <code>`espaces conservées`</code></p>"],
+        ["retours à la ligne", "Prévu demain.\nEffectué demain.\n\nPremière ligne avec deux espaces.  \nSaut explicite.\\\nAutre ligne.", "<p>Prévu demain.<br>Effectué demain.</p><p>Première ligne avec deux espaces.<br>Saut explicite.<br>Autre ligne.</p>"],
+        ["échappement des caractères Markdown", "\\*Pas en italique\\*, \\**pas en gras\\**, \\# pas un titre, \\[pas un lien\\], \\`pas du code\\`, \\> pas une citation", "<p>*Pas en italique*, **pas en gras**, # pas un titre, [pas un lien], `pas du code`, &gt; pas une citation</p>"],
+        ["entités HTML sûres", "&amp; &lt; &gt; &copy; A&nbsp;B", "<p>&amp; &lt; &gt; © A&nbsp;B</p>"],
         ["texte barré", "~~annulé~~ et **gardé**", "<p><del>annulé</del> et <strong>gardé</strong></p>"],
         ["texte barré dans une puce", "- ~~fait~~ reste", "<ul><li><del>fait</del> reste</li></ul>"],
         ["listes à puces", "- un\n- deux", "<ul><li>un</li><li>deux</li></ul>"],
@@ -34,7 +38,7 @@
             node.removeAttribute("data-end-line");
             node.removeAttribute("data-level");
         });
-        element.querySelectorAll("h1[id], h2[id], h3[id]").forEach(heading => heading.removeAttribute("id"));
+        element.querySelectorAll("h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]").forEach(heading => heading.removeAttribute("id"));
         element.querySelectorAll(".markdown-section-heading, .markdown-section-content, .markdown-section").forEach(wrapper => {
             wrapper.replaceWith(...wrapper.childNodes);
         });
@@ -79,6 +83,21 @@
     addResult("le chevron expose son état accessible", firstToggle.getAttribute("aria-expanded") === "true");
     collapsiblePreview.remove();
 
+    const deepHeadingPreview = document.createElement("div");
+    deepHeadingPreview.className = "preview-content";
+    deepHeadingPreview.append(MarkdownRenderer.render(MarkdownParser.parse("# Principal\n\n## Niveau 2\n\n### Niveau 3\n\n#### Niveau 4\n\n##### Niveau 5\n\n###### Niveau 6\n\nContenu")));
+    const deepHeadingLink = document.createElement("a");
+    deepHeadingLink.href = "#niveau-6";
+    deepHeadingLink.textContent = "Aller au niveau 6";
+    deepHeadingPreview.prepend(deepHeadingLink);
+    NoteEditorView.bindHeadingCollapse(deepHeadingPreview);
+    document.body.append(deepHeadingPreview);
+    const deepHeadingSections = [...deepHeadingPreview.querySelectorAll(".markdown-section")];
+    deepHeadingPreview.querySelector("h2").previousElementSibling.click();
+    deepHeadingLink.click();
+    addResult("une ancre H6 déplie ses sections parentes jusqu’au contenu cible", deepHeadingPreview.querySelector("#niveau-6") !== null && deepHeadingSections.every(section => !section.querySelector(":scope > .markdown-section-content").hidden));
+    deepHeadingPreview.remove();
+
     const resizeFixture = document.createElement("div");
     const resizeHome = document.createElement("div");
     const resizeHeader = document.createElement("header");
@@ -106,7 +125,7 @@
         ["Liens et images", "liens-et-images"],
         ["Citations", "citations"],
         ["Code", "code"],
-        ["Tableaux GFM", "tableaux-gfm"],
+        ["Tableaux — GFM", "tableaux--gfm"],
         ["Extensions courantes", "extensions-courantes"],
         ["HTML intégré", "html-intégré"],
         ["Cas limites", "cas-limites"]
@@ -122,7 +141,7 @@
     const tocRoot = tocPreview.querySelector(".markdown-section");
     tocRoot.querySelector(":scope > .markdown-section-heading > .markdown-collapse-toggle").click();
     tocLinks[7].click();
-    addResult("les neuf liens du sommaire correspondent aux ancres des titres", tocHeadings.every(([, slug]) => tocPreview.querySelector(`h1[id='${slug}'], h2[id='${slug}'], h3[id='${slug}']`)));
+    addResult("les neuf liens du sommaire correspondent aux ancres des titres", tocHeadings.every(([, slug]) => tocPreview.querySelector(`h1[id='${slug}'], h2[id='${slug}'], h3[id='${slug}'], h4[id='${slug}'], h5[id='${slug}'], h6[id='${slug}']`)));
     addResult("un lien interne déplie sa section et ajoute l’espace final nécessaire sous l’en-tête sticky", !tocRoot.querySelector(":scope > .markdown-section-content").hidden && !tocLinks[7].hasAttribute("target") && tocPreview.querySelector("#html-intégré").style.scrollMarginTop === "76px" && Number.parseFloat(tocPreview.querySelector(":scope > .markdown-anchor-spacer")?.style.height) > 0 && decodeURIComponent(window.location.hash.slice(1)) === "html-intégré");
     tocPreview.remove();
     tocHeader.remove();
