@@ -1,4 +1,36 @@
 (() => {
+    const languageAliases = {
+        js: "javascript",
+        node: "javascript",
+        ts: "typescript",
+        py: "python",
+        html: "markup",
+        xml: "markup",
+        c: "cpp",
+        "c++": "cpp",
+        cc: "cpp",
+        cxx: "cpp"
+    };
+
+    function parseFenceOpening(line) {
+        const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+        if (!match || (match[1][0] === "`" && match[2].includes("`"))) return null;
+        const language = match[2].trim().match(/^[^\s]+/)?.[0].toLowerCase();
+        const validLanguage = language && /^[a-z][a-z0-9_+-]*$/.test(language) ? language : undefined;
+        return {
+            marker: match[1][0],
+            length: match[1].length,
+            language: validLanguage
+                ? Object.prototype.hasOwnProperty.call(languageAliases, validLanguage) ? languageAliases[validLanguage] : validLanguage
+                : undefined
+        };
+    }
+
+    function closesFence(line, fence) {
+        const marker = fence.marker === "`" ? "`" : "~";
+        return new RegExp(`^ {0,3}${marker}{${fence.length},}[ \\t]*$`).test(line);
+    }
+
     function isSafeLink(destination) {
         const value = destination.trim();
         if (!value || /[\u0000-\u001f\u007f]/.test(value)) return false;
@@ -180,13 +212,14 @@
         for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
             const line = lines[lineIndex];
             if (code) {
-                if (/^\s*```/.test(line)) {
-                    blocks.push({ type: "codeBlock", value: code.join("\n") });
+                if (closesFence(line, code.fence)) {
+                    blocks.push({ type: "codeBlock", value: code.lines.join("\n"), language: code.fence.language });
                     code = null;
-                } else code.push(line);
+                } else code.lines.push(line);
                 continue;
             }
-            if (/^\s*```/.test(line)) { flushBlocks(); code = []; continue; }
+            const fence = parseFenceOpening(line);
+            if (fence) { flushBlocks(); code = { fence, lines: [] }; continue; }
 
             const heading = line.match(/^(#{1,6})\s+(.+)$/);
             const task = line.match(/^\s*[-*+]\s+\[([ xX])\]\s+(.*)$/);
@@ -242,7 +275,7 @@
                 lastItem.endLine = lineIndex;
             } else { flushQuote(); flushList(); paragraph.push(line.trim().replace(/\\$/, "")); }
         }
-        if (code) blocks.push({ type: "codeBlock", value: code.join("\n") });
+        if (code) blocks.push({ type: "codeBlock", value: code.lines.join("\n"), language: code.fence.language });
         flushBlocks();
         const headings = blocks.filter(block => block.type === "heading");
         headings.forEach((current, index) => {

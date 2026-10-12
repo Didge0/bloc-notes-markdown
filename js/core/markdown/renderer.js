@@ -148,6 +148,8 @@
                 element = document.createElement("pre");
                 const code = document.createElement("code");
                 code.textContent = block.value;
+                if (block.language && /^[a-z][a-z0-9_-]*$/.test(block.language)) code.classList.add(`language-${block.language}`);
+                window.NoteCodeHighlighter?.highlight(code, block.language);
                 element.append(code);
             } else if (block.type === "list") {
                 element = document.createElement(block.ordered ? "ol" : "ul");

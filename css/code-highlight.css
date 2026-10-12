@@ -1,0 +1,58 @@
+.preview-content pre code .token.comment,
+.preview-content pre code .token.prolog,
+.preview-content pre code .token.doctype,
+.preview-content pre code .token.cdata { color: var(--code-token-comment); }
+.preview-content pre code .token.punctuation { color: var(--code-token-punctuation); }
+.preview-content pre code .token.property,
+.preview-content pre code .token.tag,
+.preview-content pre code .token.constant,
+.preview-content pre code .token.symbol,
+.preview-content pre code .token.deleted { color: var(--code-token-markup); }
+.preview-content pre code .token.boolean,
+.preview-content pre code .token.number { color: var(--code-token-number); }
+.preview-content pre code .token.selector,
+.preview-content pre code .token.attr-name,
+.preview-content pre code .token.string,
+.preview-content pre code .token.char,
+.preview-content pre code .token.builtin,
+.preview-content pre code .token.inserted { color: var(--code-token-string); }
+.preview-content pre code .token.operator,
+.preview-content pre code .token.entity,
+.preview-content pre code .token.url { color: var(--code-token-operator); }
+.preview-content pre code .token.atrule,
+.preview-content pre code .token.attr-value,
+.preview-content pre code .token.keyword { color: var(--code-token-keyword); font-weight: 650; }
+.preview-content pre code .token.function,
+.preview-content pre code .token.class-name { color: var(--code-token-function); }
+.preview-content pre code .token.regex,
+.preview-content pre code .token.important,
+.preview-content pre code .token.variable { color: var(--code-token-special); }
+.preview-content pre code .token.important,
+.preview-content pre code .token.bold { font-weight: 700; }
+.preview-content pre code .token.italic { font-style: italic; }
+
+:root {
+    --code-token-comment: #667085;
+    --code-token-punctuation: #414b57;
+    --code-token-markup: #9b3d3d;
+    --code-token-number: #8b4d16;
+    --code-token-string: #23754f;
+    --code-token-operator: #875b14;
+    --code-token-keyword: #9b3d3d;
+    --code-token-function: #155e83;
+    --code-token-special: #7650a1;
+}
+
+@media screen {
+    :root[data-theme="dark"] {
+        --code-token-comment: #9ca8b5;
+        --code-token-punctuation: #d3d9df;
+        --code-token-markup: #ee9292;
+        --code-token-number: #f0b66c;
+        --code-token-string: #83d6a3;
+        --code-token-operator: #e8c176;
+        --code-token-keyword: #f09696;
+        --code-token-function: #7ec9ed;
+        --code-token-special: #c5a1f0;
+    }
+}

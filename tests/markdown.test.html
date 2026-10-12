@@ -5,16 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tests du rendu Markdown</title>
     <link rel="stylesheet" href="css/test.css">
+    <link rel="stylesheet" href="../css/code-highlight.css">
 </head>
 <body>
     <h1>Tests du rendu Markdown</h1>
     <p id="summary" aria-live="polite">Tests en cours...</p>
     <ol id="results"></ol>
     <script src="../js/core/markdown/parser.js"></script>
+    <script src="../js/vendor/prism/prism-core.js"></script>
+    <script src="../js/vendor/prism/prism-clike.js"></script>
+    <script src="../js/vendor/prism/prism-javascript.js"></script>
+    <script src="../js/vendor/prism/prism-typescript.js"></script>
+    <script src="../js/vendor/prism/prism-python.js"></script>
+    <script src="../js/vendor/prism/prism-markup.js"></script>
+    <script src="../js/vendor/prism/prism-css.js"></script>
+    <script src="../js/vendor/prism/prism-c.js"></script>
+    <script src="../js/vendor/prism/prism-cpp.js"></script>
+    <script src="../js/core/markdown/code-highlighter.js"></script>
     <script src="../js/core/markdown/renderer.js"></script>
     <script src="../js/ui/editor-view.js"></script>
     <script src="../js/ui/preview-dnd.js"></script>
     <script src="../js/ui/theme.js"></script>
+    <script src="../js/ui/html-export.js"></script>
     <script src="js/markdown.test.js"></script>
 </body>
 </html>

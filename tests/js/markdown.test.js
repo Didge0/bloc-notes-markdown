@@ -75,6 +75,36 @@
         if (!passed) failures += 1;
     };
 
+    const codeMarkdown = [
+        "```js", "const answer = 42;", "```",
+        "~~~ts", "const count: number = 3;", "~~~",
+        "```py", "def add(value):", "    return value + 1", "```",
+        "```html", '<section class="card">Text</section>', "```",
+        "```css", ".card { color: red; }", "```",
+        "```c++", "int main() { return 0; }", "```",
+        "```unknown", "plain text", "```",
+        "```constructor", "inherited names are not grammars", "```",
+        "```", "unlabelled text", "```",
+        "````text", "``` is content here", "````"
+    ].join("\n");
+    const codeBlocks = MarkdownParser.parse(codeMarkdown).blocks.filter(block => block.type === "codeBlock");
+    const codePreview = document.createElement("div");
+    codePreview.append(MarkdownRenderer.render({ type: "document", blocks: codeBlocks }));
+    const renderedCode = [...codePreview.querySelectorAll("pre > code")];
+    addResult("reconnaît les six langages et leurs alias", codeBlocks.map(block => block.language).join(",") === "javascript,typescript,python,markup,css,cpp,unknown,constructor,,text");
+    addResult("un délimiteur plus court reste dans le code", codeBlocks[9].value === "``` is content here");
+    addResult("colore les catégories syntaxiques des six grammaires", renderedCode[0].querySelector(".token.keyword") && renderedCode[1].querySelector(".token.keyword") && renderedCode[2].querySelector(".token.keyword") && renderedCode[3].querySelector(".token.tag") && renderedCode[4].querySelector(".token.selector") && renderedCode[5].querySelector(".token.keyword"));
+    addResult("les langages inconnus et les blocs sans langage restent en texte brut", !renderedCode[6].querySelector(".token") && !renderedCode[7].querySelector(".token") && !renderedCode[8].querySelector(".token"));
+
+    const unsafeCode = '<script>window.__markdownCodeExecuted = true;</script>';
+    const safeCodePreview = document.createElement("div");
+    safeCodePreview.append(MarkdownRenderer.render(MarkdownParser.parse(`\`\`\`html\n${unsafeCode}\n\`\`\``)));
+    const safeCodeElement = safeCodePreview.querySelector("pre > code");
+    addResult("le surlignage conserve le code HTML comme texte inerte", safeCodeElement.textContent === unsafeCode && !safeCodeElement.querySelector("script") && window.__markdownCodeExecuted !== true);
+
+    const exportedCode = NoteHtmlExport.build("Code", codePreview);
+    addResult("l’export HTML autonome embarque le thème syntaxique", exportedCode.includes(".token.keyword") && exportedCode.includes('class="token keyword"') && !exportedCode.includes("<script>window.__markdownCodeExecuted"));
+
     headings[0].previousElementSibling.click();
     addResult("le H1 replie son contenu et ses sous-sections", sectionContents[0].hidden && !sectionContents[1].hidden && !sectionContents[2].hidden);
     addResult("le H1 ne replie pas la section H1 suivante", !sectionContents[3].hidden);

@@ -1,6 +1,6 @@
 # Bloc-notes Markdown local
 
-Un éditeur Markdown autonome, sans dépendance externe et utilisable hors ligne. Les notes sont de vrais fichiers `.md` dans le dossier local que vous choisissez.
+Un éditeur Markdown autonome, sans dépendance réseau et utilisable hors ligne. Prism.js est inclus localement pour colorer le code. Les notes sont de vrais fichiers `.md` dans le dossier local que vous choisissez.
 
 ## Démarrage
 
@@ -20,13 +20,17 @@ bloc-notes-markdown/
 │   ├── base.css                       # En-tête, accueil, commandes et structure générale
 │   ├── editor.css                     # Zone de saisie Markdown
 │   ├── preview.css                    # Présentation du Markdown rendu
+│   ├── code-highlight.css             # Couleurs des catégories syntaxiques
 │   └── responsive.css                 # Adaptations mobile et impression
 ├── js/
 │   ├── app.js                         # Coordination des vues, événements et flux de notes
 │   ├── core/
 │   │   └── markdown/
 │   │       ├── parser.js              # Convertit le Markdown en structure de données
+│   │       ├── code-highlighter.js    # Crée les tokens Prism en nœuds DOM sûrs
 │   │       └── renderer.js            # Construit l’aperçu avec l’API DOM
+│   ├── vendor/
+│   │   └── prism/                     # Prism.js 1.30.0, grammaires locales et licence MIT
 │   ├── services/
 │   │   ├── notes-files.js             # Lecture, liste, création, écriture et suppression de notes
 │   │   └── storage.js                 # Handle du dossier et migration localStorage
@@ -82,13 +86,16 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 
 - Titres de niveaux 1 à 3
 - Gras (`**texte**` ou `__texte__`) et italique (`*texte*` ou `_texte_`)
-- Code en ligne et blocs de code entre triples accents graves
+- Code en ligne et blocs clôturés avec coloration syntaxique pour JavaScript, TypeScript, Python, HTML/XML, CSS et C++
+- Blocs non annotés ou annotés avec un langage inconnu affichés sans coloration
 - Listes à puces, listes numérotées et cases à cocher interactives dans l’aperçu
 - Sections des titres repliables et dépliables avec le chevron à leur gauche
 - Citations, liens et séparateurs horizontaux
 - Retours à la ligne conservés dans les paragraphes
 
-Le parseur est volontairement léger; il ne vise pas la spécification CommonMark complète. Les tableaux, images, listes imbriquées et la coloration syntaxique ne sont pas pris en charge.
+La coloration utilise Prism.js et ses grammaires stockés localement dans `js/vendor/prism/`; aucun téléchargement n’est effectué lors de l’utilisation. La coloration ne lance pas le code. L’exécution éventuelle d’un langage dans l’aperçu nécessitera une fonctionnalité isolée distincte.
+
+Le parseur est volontairement léger; il ne vise pas la spécification CommonMark complète. Les tableaux, images et listes imbriquées sont pris en charge par des extensions simplifiées.
 
 ## Fichiers et migration des données
 
@@ -104,7 +111,7 @@ Le handle sauvegardé dans IndexedDB sert à retrouver le dossier sélectionné,
 
 ## Sécurité
 
-Le renderer crée les nœuds texte avec l’API DOM, sans interpréter le contenu de la note comme du HTML. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. L’application ne charge aucun script tiers et n’envoie pas les notes sur un serveur; l’accès aux seuls fichiers choisis reste soumis à l’autorisation du navigateur.
+Le renderer crée les nœuds texte avec l’API DOM, sans interpréter le contenu de la note comme du HTML. Les tokens de code sont aussi construits avec des nœuds texte et des éléments `span`; leur coloration n’exécute jamais le code. Les liens ayant un protocole autre que `http`, `https` ou `mailto` ne sont pas activés. Les liens ouverts dans un nouvel onglet utilisent `rel="noopener noreferrer"`. Prism.js est stocké dans le projet : aucun script tiers distant n’est chargé et les notes ne sont pas envoyées sur un serveur; l’accès aux seuls fichiers choisis reste soumis à l’autorisation du navigateur.
 
 ## Tests
 
@@ -112,4 +119,4 @@ Ouvrez les deux pages dans `tests/` directement dans le navigateur. Elles testen
 
 ## Technologies
 
-HTML, CSS et JavaScript natifs; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation n’est requis. Les scripts sont chargés séparément et dans l’ordre requis afin de garder le lancement direct par `file://`.
+HTML, CSS et JavaScript natifs, avec Prism.js 1.30.0 et ses grammaires intégrés localement; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation ni installation n’est requis. Les scripts sont chargés séparément et dans l’ordre requis afin de garder le lancement direct par `file://`.
