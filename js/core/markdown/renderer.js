@@ -153,7 +153,16 @@
                 element = document.createElement(block.ordered ? "ol" : "ul");
                 if (block.task) element.className = "task-list";
                 if (block.ordered && block.start !== 1) element.start = block.start;
+                const listStack = [{ indent: block.items[0]?.indent || 0, element, lastItem: null }];
                 for (const item of block.items) {
+                    while (listStack.length > 1 && item.indent < listStack[listStack.length - 1].indent) listStack.pop();
+                    if (item.indent > listStack[listStack.length - 1].indent) {
+                        const parent = listStack[listStack.length - 1];
+                        const nestedList = document.createElement(block.ordered ? "ol" : "ul");
+                        parent.lastItem?.append(nestedList);
+                        listStack.push({ indent: item.indent, element: nestedList, lastItem: null });
+                    }
+                    const currentList = listStack[listStack.length - 1];
                     const listItem = document.createElement("li");
                     if (block.task) {
                         const checkbox = document.createElement("input");
@@ -168,7 +177,8 @@
                     listItem.dataset.line = String(item.line);
                     listItem.dataset.endLine = String(item.endLine);
                     listItem.append(createDragHandle("Déplacer cet élément"));
-                    element.append(listItem);
+                    currentList.element.append(listItem);
+                    currentList.lastItem = listItem;
                 }
             }
             if (element) {

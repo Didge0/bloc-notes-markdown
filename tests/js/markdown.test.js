@@ -12,6 +12,8 @@
         ["texte barré", "~~annulé~~ et **gardé**", "<p><del>annulé</del> et <strong>gardé</strong></p>"],
         ["texte barré dans une puce", "- ~~fait~~ reste", "<ul><li><del>fait</del> reste</li></ul>"],
         ["listes à puces", "- un\n- deux", "<ul><li>un</li><li>deux</li></ul>"],
+        ["marqueurs de liste non ordonnée", "- tiret\n* astérisque\n+ plus", "<ul><li>tiret</li><li>astérisque</li><li>plus</li></ul>"],
+        ["listes non ordonnées imbriquées", "- Élément avec un tiret\n- Deuxième élément\n  - Sous-élément niveau 2\n    - Sous-élément niveau 3\n  - Retour au niveau 2\n- Dernier élément", "<ul><li>Élément avec un tiret</li><li>Deuxième élément<ul><li>Sous-élément niveau 2<ul><li>Sous-élément niveau 3</li></ul></li><li>Retour au niveau 2</li></ul></li><li>Dernier élément</li></ul>"],
         ["liste numérotée", "1. un\n2. deux", "<ol><li>un</li><li>deux</li></ol>"],
         ["continuation de puce indentée", "- élément\n    détail", "<ul><li>élément<br>détail</li></ul>"],
         ["continuation numérotée indentée", "1. élément\n    détail", "<ol><li>élément<br>détail</li></ol>"],
@@ -149,6 +151,10 @@
     const dndAst = MarkdownParser.parse("# A\n\n- un\n  détail\n- deux\n\n## B\n\n1. n\n\n# C");
     const dndList = dndAst.blocks.find(block => block.type === "list");
     addResult("le parser expose les plages de lignes", dndList.items[0].line === 2 && dndList.items[0].endLine === 3 && dndAst.blocks[0].endLine === 9);
+    const nestedListItems = MarkdownParser.parse("- parent\n  - enfant\n- voisin").blocks[0].items;
+    addResult("la plage d’une puce parente inclut ses sous-puces", nestedListItems[0].endLine === 1 && nestedListItems[1].endLine === 1 && nestedListItems[2].endLine === 2);
+    const taskItems = MarkdownParser.parse("- [x] fait\n- [ ] à faire").blocks[0].items;
+    addResult("les tâches sœurs conservent leurs plages de lignes", taskItems[0].endLine === 0 && taskItems[1].endLine === 1);
     const moveItem = NotePreviewDnd.moveListItem("- un\n  détail\n- deux", { start: 0, end: 1 }, { line: 2, endLine: 2, position: "after" });
     addResult("déplace une puce avec sa continuation", moveItem?.text === "- deux\n- un\n  détail" && moveItem.line === 1);
     const moveTask = NotePreviewDnd.moveListItem("- [x] fait\n\n1. un", { start: 0, end: 0 }, { line: 2, endLine: 2, position: "after" });

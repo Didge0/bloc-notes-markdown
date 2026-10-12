@@ -164,7 +164,15 @@
             quote = [];
         };
         const flushList = () => {
-            if (list) blocks.push(list);
+            if (list) {
+                const parents = [];
+                for (const item of list.items) {
+                    while (parents.length && parents[parents.length - 1].indent >= item.indent) parents.pop();
+                    if (parents.length) parents[parents.length - 1].endLine = item.endLine;
+                    parents.push(item);
+                }
+                blocks.push(list);
+            }
             list = null;
         };
         const flushBlocks = () => { flushParagraph(); flushQuote(); flushList(); };
@@ -219,13 +227,15 @@
                 flushParagraph(); flushQuote();
                 if (list && !list.task) flushList();
                 if (!list) list = { type: "list", ordered: false, task: true, start: 1, items: [] };
-                list.items.push({ checked: task[1].toLowerCase() === "x", line: lineIndex, endLine: lineIndex, children: parseInline(task[2]) });
+                const indent = line.match(/^\s*/)[0].replace(/\t/g, "    ").length;
+                list.items.push({ checked: task[1].toLowerCase() === "x", line: lineIndex, endLine: lineIndex, indent, children: parseInline(task[2]) });
             } else if (bullet || ordered) {
                 flushParagraph(); flushQuote();
                 const isOrdered = Boolean(ordered);
                 if (list && (list.task || list.ordered !== isOrdered)) flushList();
                 if (!list) list = { type: "list", ordered: isOrdered, task: false, start: isOrdered ? Number(ordered[1]) : 1, items: [] };
-                list.items.push({ line: lineIndex, endLine: lineIndex, children: parseInline(isOrdered ? (ordered[2] || "") : bullet[1]) });
+                const indent = line.match(/^\s*/)[0].replace(/\t/g, "    ").length;
+                list.items.push({ line: lineIndex, endLine: lineIndex, indent, children: parseInline(isOrdered ? (ordered[2] || "") : bullet[1]) });
             } else if (listContinuation) {
                 const lastItem = list.items[list.items.length - 1];
                 lastItem.continuation = parseInline(line.trim());
