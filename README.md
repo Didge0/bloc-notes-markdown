@@ -4,7 +4,7 @@ Un éditeur Markdown autonome, sans dépendance réseau et utilisable hors ligne
 
 ## Démarrage
 
-Ouvrez `index.html` dans **Chrome ou Edge**. Au premier lancement, choisissez le dossier `notes/` du projet et autorisez l’accès en lecture et écriture. Aucun serveur ni installation n’est nécessaire. Pour tester le rendu et les opérations de fichiers simulées, ouvrez `tests/markdown.test.html` et `tests/notes.test.html`.
+Ouvrez `index.html` dans **Chrome ou Edge**. Au premier lancement, choisissez le dossier qui contient vos fichiers Markdown et autorisez l’accès en lecture et écriture. Aucun serveur ni installation n’est nécessaire. Pour tester le rendu et les opérations de fichiers simulées, ouvrez `tests/markdown.test.html` et `tests/notes.test.html`.
 
 L’application ne peut pas parcourir un dossier local sans autorisation explicite. Elle mémorise le dossier choisi. Si Chrome redemande l’autorisation à l’ouverture, utilisez le bouton **Autoriser l’accès à ...** : il réutilise le dossier enregistré sans vous demander de le sélectionner à nouveau. Le bouton **Choisir un autre dossier** reste disponible séparément. Firefox et Safari ne fournissent pas actuellement l’API nécessaire à cette gestion directe des fichiers.
 
@@ -12,7 +12,7 @@ L’application ne peut pas parcourir un dossier local sans autorisation explici
 
 ```text
 bloc-notes-markdown/
-├── .gitignore                         # Fichiers locaux exclus du suivi Git
+├── .gitignore                         # Règles d’exclusion de Git
 ├── Bloc-notes_Markdown_icon.ico       # Icône utilisée par l’onglet du navigateur
 ├── index.html                         # Point d’entrée HTML et ordre de chargement des ressources
 ├── css/
@@ -38,11 +38,9 @@ bloc-notes-markdown/
 │   │   ├── home-view.js               # Construction de la liste de notes
 │   │   ├── editor-view.js             # Aperçu, tâches interactives et bascule aperçu seul
 │   │   ├── editor-input.js            # Tabulation et continuation/sortie des listes
-│   │   └── html-export.js             # Export autonome; CSS embarqué isolé ici
-├── notes/
-│   ├── example.md                      # Note d’exemple disponible depuis l’accueil
-│   ├── RDV Honorée comparaison.md      # Note Markdown du projet
-│   └── TODO.md                         # Liste des tâches du projet
+│   │   ├── preview-dnd.js             # Glisser-déposer des éléments dans l’aperçu
+│   │   ├── html-export.js             # Export autonome; CSS embarqué isolé ici
+│   │   └── theme.js                   # Gestion du thème clair/sombre
 ├── tests/
 │   ├── markdown.test.html              # Page de lancement des tests Markdown
 │   ├── notes.test.html                 # Page de lancement des tests des fichiers
@@ -101,7 +99,7 @@ Le parseur est volontairement léger; il ne vise pas la spécification CommonMar
 
 Chaque note est un fichier Markdown du dossier choisi ou de l’un de ses sous-dossiers. Dans l’accueil, dépliez un dossier pour afficher ses sous-dossiers et ses notes sans quitter la liste; le bouton `+` crée une note directement dans ce dossier. Le bouton **Nouveau dossier** crée un sous-dossier à la racine sélectionnée. Le titre d’une note est son premier titre Markdown `# ...`, ou son nom de fichier en son absence. Le navigateur conserve le handle du dossier racine dans IndexedDB. Il peut demander une nouvelle autorisation, sans exiger de sélectionner de nouveau le dossier.
 
-Si une ancienne note existe dans `localStorage` sous la clé `blocNotes`, l’application propose de l’ajouter au dossier. Cette importation est facultative et ne supprime pas l’ancienne copie. Pour l’effacer manuellement, utilisez la console du navigateur :
+Si une ancienne note existe dans `localStorage` sous la clé `blocNotes`, l’application propose de l’ajouter au dossier choisi. Cette importation est facultative et ne supprime pas l’ancienne copie. Pour l’effacer manuellement, utilisez la console du navigateur :
 
 ```javascript
 localStorage.removeItem("blocNotes");
