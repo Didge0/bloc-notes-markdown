@@ -127,6 +127,10 @@ li:hover > .drag-handle, .markdown-section-heading:hover > .drag-handle, .drag-h
     line-height: 1.5;
 }
 .preview-content pre code { padding: 0; background: none; color: var(--color-text); }
+.markdown-mermaid { max-width: 100%; overflow-x: auto; margin: 1.5rem 0; }
+.markdown-mermaid svg { display: block; max-width: 100%; height: auto; }
+.markdown-mermaid.is-rendered > pre { display: none; }
+.markdown-mermaid-error { margin-top: .5rem; color: var(--color-danger); font-size: .9rem; }
 .preview-content a { border-bottom: 1px dotted var(--color-primary); color: var(--color-primary); text-decoration: none; }
 .preview-content a:hover { border-bottom-style: solid; color: var(--color-primary-light); }
 .preview-content hr { margin: 2rem 0; border: 0; border-top: 2px solid var(--color-border); }

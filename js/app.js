@@ -312,7 +312,8 @@
         showStatus("Copie Markdown téléchargée");
     }
 
-    function downloadHtml() {
+    async function downloadHtml() {
+        await NoteEditorView.waitForRender();
         const name = activeNote?.name.replace(/\.md$/i, "") || "note";
         const html = NoteHtmlExport.build(name, preview);
         NoteFiles.download(`${name}.html`, html, "text/html;charset=utf-8");

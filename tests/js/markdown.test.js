@@ -256,6 +256,62 @@
         return { editorHeight, previewHeight, pageScrolls, previewFitsContent, editorFitsContent };
     }
 
+    async function runMermaidTests() {
+        const editor = document.createElement("textarea");
+        const preview = document.createElement("div");
+        preview.className = "preview-content";
+        document.body.append(preview);
+        const wordCount = document.createElement("div");
+        editor.value = [
+            "~~~mermaid", "gitGraph LR:", '    commit id: "Base"', "    branch A", "    checkout A",
+            '    commit id: "A1"', "    checkout main", "    branch B", "    checkout B",
+            '    commit id: "B1"', '    merge A id: "Merge A dans B"', "~~~", "",
+            "~~~mermaid", "flowchart TD", "    Start --> Stop", "~~~"
+        ].join("\n");
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        const diagramMarkup = preview.innerHTML;
+        addResult("rend un gitGraph et un flowchart Mermaid", preview.querySelectorAll(".markdown-mermaid.is-rendered svg").length === 2);
+        addResult("le GitGraph conserve ses libellés dans le SVG", diagramMarkup.includes("Merge A dans B"));
+
+        const previousTheme = NoteTheme.current();
+        NoteTheme.apply(previousTheme === "dark" ? "light" : "dark");
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await NoteMermaidRenderer.waitForRender();
+        const changedThemeMarkup = preview.innerHTML;
+        const normalizeDiagramIds = markup => markup.replace(/note-mermaid-\d+/g, "note-mermaid");
+        addResult("les diagrammes se recolorent au changement de thème", normalizeDiagramIds(changedThemeMarkup) !== normalizeDiagramIds(diagramMarkup));
+        NoteTheme.apply("dark");
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await NoteMermaidRenderer.waitForRender();
+        const darkExport = NoteHtmlExport.build("Diagrammes", preview);
+        addResult("l’export autonome conserve aussi le thème sombre", darkExport.includes('data-theme="dark"') && darkExport.includes(':root[data-theme="dark"] body'));
+        NoteTheme.apply(previousTheme);
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await NoteMermaidRenderer.waitForRender();
+
+        const exported = NoteHtmlExport.build("Diagrammes", preview);
+        addResult("l’export HTML embarque le SVG et ses styles hors ligne", exported.includes("<svg") && exported.includes(".markdown-mermaid svg") && !exported.includes("mermaid.min.js"));
+
+        const codePreview = document.createElement("div");
+        codePreview.append(MarkdownRenderer.render(MarkdownParser.parse("~~~text\nflowchart TD\n~~~")));
+        addResult("un bloc text ressemblant à Mermaid reste du code", Boolean(codePreview.querySelector("pre > code")) && !codePreview.querySelector("svg"));
+
+        editor.value = "~~~mermaid\nnot a valid diagram\n~~~";
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        addResult("une erreur Mermaid conserve le code source et affiche un message", Boolean(preview.querySelector(".markdown-mermaid-error")) && preview.querySelector(".markdown-mermaid code")?.textContent === "not a valid diagram");
+
+        const racePreview = document.createElement("div");
+        racePreview.append(MarkdownRenderer.render(MarkdownParser.parse("~~~mermaid\nflowchart TD\n    Old --> Result\n~~~")));
+        const staleRender = NoteMermaidRenderer.render(racePreview);
+        racePreview.replaceChildren(MarkdownRenderer.render(MarkdownParser.parse("~~~mermaid\nflowchart TD\n    Latest --> Result\n~~~")));
+        const currentRender = NoteMermaidRenderer.render(racePreview);
+        await Promise.all([staleRender, currentRender]);
+        addResult("une mise à jour rapide ignore le rendu Mermaid périmé", racePreview.querySelectorAll("svg").length === 1 && racePreview.innerHTML.includes("Latest") && !racePreview.innerHTML.includes("Old"));
+        preview.remove();
+    }
+
     async function runLayoutTests() {
         let styles;
         try { styles = await loadStyles(); }
@@ -328,7 +384,11 @@
         addResult("impression en aperçu seul : l’aperçu est affiché", printedPreviewOnly.preview !== "none");
     }
 
-    runLayoutTests().finally(() => {
+    runMermaidTests().catch(error => {
+        addResult(`les tests Mermaid s’exécutent sans exception (${error.message})`, false);
+    }).then(runLayoutTests).catch(error => {
+        addResult(`les tests de mise en page s’exécutent sans exception (${error.message})`, false);
+    }).finally(() => {
         const totalTests = results.children.length;
         document.getElementById("summary").textContent = `${totalTests - failures}/${totalTests} tests réussis`;
         document.getElementById("summary").className = failures ? "fail" : "pass";

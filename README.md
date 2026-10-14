@@ -28,8 +28,10 @@ bloc-notes-markdown/
 │   │   └── markdown/
 │   │       ├── parser.js              # Convertit le Markdown en structure de données
 │   │       ├── code-highlighter.js    # Crée les tokens Prism en nœuds DOM sûrs
-│   │       └── renderer.js            # Construit l’aperçu avec l’API DOM
+│   │       ├── renderer.js            # Construit l’aperçu avec l’API DOM
+│   │       └── mermaid-renderer.js    # Génère les diagrammes Mermaid en SVG
 │   ├── vendor/
+│   │   ├── mermaid/                   # Mermaid 11.12.2 et licence MIT
 │   │   └── prism/                     # Prism.js 1.30.0, grammaires locales et licence MIT
 │   ├── services/
 │   │   ├── notes-files.js             # Lecture, liste, création, écriture et suppression de notes
@@ -85,13 +87,14 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 - Titres de niveaux 1 à 3
 - Gras (`**texte**` ou `__texte__`) et italique (`*texte*` ou `_texte_`)
 - Code en ligne et blocs clôturés avec coloration syntaxique pour JavaScript, TypeScript, Python, HTML/XML, CSS et C++
+- Diagrammes Mermaid dans les blocs clôturés `mermaid`, dont les graphes Git (`gitGraph`)
 - Blocs non annotés ou annotés avec un langage inconnu affichés sans coloration
 - Listes à puces, listes numérotées et cases à cocher interactives dans l’aperçu
 - Sections des titres repliables et dépliables avec le chevron à leur gauche
 - Citations, liens et séparateurs horizontaux
 - Retours à la ligne conservés dans les paragraphes
 
-La coloration utilise Prism.js et ses grammaires stockés localement dans `js/vendor/prism/`; aucun téléchargement n’est effectué lors de l’utilisation. La coloration ne lance pas le code. L’exécution éventuelle d’un langage dans l’aperçu nécessitera une fonctionnalité isolée distincte.
+Prism.js et Mermaid sont stockés localement dans `js/vendor/`; aucun téléchargement n’est effectué lors de l’utilisation. Les diagrammes Mermaid sont rendus en SVG dans l’aperçu et intégrés tels quels à l’export HTML autonome. La coloration ne lance pas le code. L’exécution éventuelle d’un langage dans l’aperçu nécessitera une fonctionnalité isolée distincte.
 
 Le parseur est volontairement léger; il ne vise pas la spécification CommonMark complète. Les tableaux, images et listes imbriquées sont pris en charge par des extensions simplifiées.
 

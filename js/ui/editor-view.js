@@ -1,4 +1,6 @@
 (() => {
+    let pendingDiagramRender = Promise.resolve();
+
     function resizeEditor(editor) {
         if (!editor.getClientRects().length) return;
         editor.style.height = "0px";
@@ -9,8 +11,19 @@
         resizeEditor(editor);
         const ast = MarkdownParser.parse(editor.value);
         preview.replaceChildren(MarkdownRenderer.render(ast));
+        pendingDiagramRender = window.NoteMermaidRenderer?.render(preview) || Promise.resolve();
         const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
         wordCount.textContent = `Mots : ${words}`;
+        return pendingDiagramRender;
+    }
+
+    async function waitForRender() {
+        let render;
+        do {
+            render = pendingDiagramRender;
+            await render;
+            await window.NoteMermaidRenderer?.waitForRender();
+        } while (render !== pendingDiagramRender);
     }
 
     function bindTaskChanges(editor, preview, wordCount, onChange) {
@@ -110,5 +123,5 @@
         }
     }
 
-    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, resizeEditor, showEditor, togglePreviewOnly };
+    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, resizeEditor, showEditor, togglePreviewOnly, waitForRender };
 })();

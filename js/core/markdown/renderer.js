@@ -145,12 +145,19 @@
                 element.append(table);
             } else if (block.type === "horizontalRule") element = document.createElement("hr");
             else if (block.type === "codeBlock") {
-                element = document.createElement("pre");
+                element = document.createElement(block.language === "mermaid" ? "div" : "pre");
+                if (block.language === "mermaid") element.className = "markdown-mermaid";
                 const code = document.createElement("code");
                 code.textContent = block.value;
                 if (block.language && /^[a-z][a-z0-9_-]*$/.test(block.language)) code.classList.add(`language-${block.language}`);
-                window.NoteCodeHighlighter?.highlight(code, block.language);
-                element.append(code);
+                if (block.language === "mermaid") {
+                    const source = document.createElement("pre");
+                    source.append(code);
+                    element.append(source);
+                } else {
+                    window.NoteCodeHighlighter?.highlight(code, block.language);
+                    element.append(code);
+                }
             } else if (block.type === "list") {
                 element = document.createElement(block.ordered ? "ol" : "ul");
                 if (block.task) element.className = "task-list";
