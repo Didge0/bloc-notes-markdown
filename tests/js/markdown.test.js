@@ -453,6 +453,36 @@
         preview.append(...Array.from({ length: 20 }, () => document.createElement("p")));
         NoteEditorView.alignHeadings(editor, preview);
         addResult("ne compense pas quand le contenu de l’aperçu est plus haut", preview.querySelectorAll(".markdown-heading-spacer").length === 0);
+
+        NoteEditorView.bindHeadingCollapse(preview);
+        editor.value = "# Alpha\nalpha\n\n# Beta\nbeta";
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        preview.querySelector("#alpha").previousElementSibling.click();
+        editor.value = "# Alpha\nalpha modifié\n\n# Beta\nbeta";
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        const alphaAfterEdit = preview.querySelector("#alpha").closest(".markdown-section");
+        addResult("garde un titre replié après une modification dans l’éditeur", alphaAfterEdit.querySelector(":scope > .markdown-section-content").hidden && alphaAfterEdit.querySelector(".markdown-collapse-toggle").getAttribute("aria-expanded") === "false");
+        const movedAlpha = NotePreviewDnd.moveSection(editor.value, { start: 0, end: 1, level: 1 }, { line: 3, endLine: 4, level: 1, position: "after" });
+        editor.value = movedAlpha.text;
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        const alphaAfterMove = preview.querySelector("#alpha").closest(".markdown-section");
+        addResult("garde un titre replié après son déplacement dans l’aperçu", alphaAfterMove.querySelector(":scope > .markdown-section-content").hidden && alphaAfterMove.querySelector(".markdown-collapse-toggle").getAttribute("aria-expanded") === "false");
+
+        editor.value = `# Replié\n${Array.from({ length: 12 }, (_, index) => `Ligne ${index}`).join("\n")}\n\n## Enfant masqué\ntexte\n\n# Visible\ntexte`;
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        preview.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(heading => { heading.style.cssText = "margin:0;font:16px/20px monospace"; });
+        preview.querySelectorAll("p").forEach(paragraph => { paragraph.style.cssText = "margin:0;font:16px/20px monospace"; });
+        preview.querySelector("#replié").previousElementSibling.click();
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        const hiddenChild = preview.querySelector("#enfant-masqué");
+        const visibleSection = preview.querySelector("#visible").closest(".markdown-section");
+        const visibleSpacerHeight = Number.parseFloat(visibleSection.querySelector(":scope > .markdown-heading-spacer")?.style.height || "0");
+        addResult("n’aligne pas les titres cachés et ne réserve pas leur hauteur après repli", Boolean(hiddenChild.closest(".markdown-section-content[hidden]") && !hiddenChild.closest(".markdown-section").querySelector(":scope > .markdown-heading-spacer") && visibleSpacerHeight < 40));
         fixture.remove();
     }
 

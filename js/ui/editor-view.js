@@ -51,6 +51,21 @@
             + parseFloat(contentStyle.marginBottom);
     }
 
+    function collapsedLineRanges(preview) {
+        const ranges = [...preview.querySelectorAll(".markdown-section")]
+            .filter(section => section.querySelector(":scope > .markdown-section-content")?.hidden)
+            .map(section => ({ start: Number(section.dataset.line) + 1, end: Number(section.dataset.endLine) }))
+            .filter(range => Number.isInteger(range.start) && Number.isInteger(range.end) && range.start <= range.end)
+            .sort((first, second) => first.start - second.start);
+        const merged = [];
+        for (const range of ranges) {
+            const previous = merged.at(-1);
+            if (previous && range.start <= previous.end + 1) previous.end = Math.max(previous.end, range.end);
+            else merged.push(range);
+        }
+        return merged;
+    }
+
     function alignHeadings(editor, preview) {
         if (!preview) return;
         clearHeadingAlignment(preview);
@@ -63,6 +78,11 @@
         const { mirror, lineElements } = createEditorMirror(editor);
         const editorTop = editor.getBoundingClientRect().top;
         const mirrorTop = mirror.getBoundingClientRect().top;
+        const lineHeights = [0];
+        for (const lineElement of lineElements) lineHeights.push(lineHeights.at(-1) + lineElement.getBoundingClientRect().height);
+        const hiddenRanges = collapsedLineRanges(preview);
+        let hiddenRangeIndex = 0;
+        let hiddenSourceHeight = 0;
         const headings = [...preview.querySelectorAll(".markdown-section[data-line]")]
             .map(section => ({ section, line: Number(section.dataset.line), heading: section.querySelector(":scope > .markdown-section-heading h1, :scope > .markdown-section-heading h2, :scope > .markdown-section-heading h3, :scope > .markdown-section-heading h4, :scope > .markdown-section-heading h5, :scope > .markdown-section-heading h6") }))
             .filter(item => item.heading && Number.isInteger(item.line) && lineElements[item.line])
@@ -70,7 +90,13 @@
 
         for (const { section, line, heading } of headings) {
             if (alignmentVersions.get(preview) !== version || editor.closest(".preview-only")) break;
-            const editorLineTop = editorTop + lineElements[line].getBoundingClientRect().top - mirrorTop;
+            if (heading.closest(".markdown-section-content[hidden]")) continue;
+            while (hiddenRangeIndex < hiddenRanges.length && hiddenRanges[hiddenRangeIndex].end < line) {
+                const range = hiddenRanges[hiddenRangeIndex];
+                hiddenSourceHeight += lineHeights[range.end + 1] - lineHeights[range.start];
+                hiddenRangeIndex += 1;
+            }
+            const editorLineTop = editorTop + lineElements[line].getBoundingClientRect().top - mirrorTop - hiddenSourceHeight;
             const difference = editorLineTop - heading.getBoundingClientRect().top;
             if (difference <= 1) continue;
             const spacer = document.createElement("div");
@@ -94,10 +120,31 @@
         editor.style.height = `${editor.scrollHeight}px`;
     }
 
+    function collapsedHeadingIds(preview) {
+        return new Set([...preview.querySelectorAll(".markdown-section")]
+            .filter(section => section.querySelector(":scope > .markdown-section-content")?.hidden)
+            .map(section => section.querySelector(":scope > .markdown-section-heading h1, :scope > .markdown-section-heading h2, :scope > .markdown-section-heading h3, :scope > .markdown-section-heading h4, :scope > .markdown-section-heading h5, :scope > .markdown-section-heading h6")?.id)
+            .filter(Boolean));
+    }
+
+    function restoreCollapsedHeadings(preview, collapsedIds) {
+        for (const section of preview.querySelectorAll(".markdown-section")) {
+            const heading = section.querySelector(":scope > .markdown-section-heading h1, :scope > .markdown-section-heading h2, :scope > .markdown-section-heading h3, :scope > .markdown-section-heading h4, :scope > .markdown-section-heading h5, :scope > .markdown-section-heading h6");
+            if (!heading || !collapsedIds.has(heading.id)) continue;
+            section.querySelector(":scope > .markdown-section-content").hidden = true;
+            const toggle = section.querySelector(":scope > .markdown-section-heading > .markdown-collapse-toggle");
+            toggle?.setAttribute("aria-expanded", "false");
+            toggle?.setAttribute("aria-label", "Déplier le contenu de cette section");
+            if (toggle) toggle.title = "Déplier le contenu";
+        }
+    }
+
     function renderMarkdown(editor, preview, wordCount) {
         resizeEditor(editor);
+        const collapsedIds = collapsedHeadingIds(preview);
         const ast = MarkdownParser.parse(editor.value);
         preview.replaceChildren(MarkdownRenderer.render(ast));
+        restoreCollapsedHeadings(preview, collapsedIds);
         const diagramRender = window.NoteMermaidRenderer?.render(preview) || Promise.resolve();
         pendingDiagramRender = diagramRender.then(() => alignHeadings(editor, preview));
         const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
@@ -130,7 +177,7 @@
         });
     }
 
-    function bindHeadingCollapse(preview) {
+    function bindHeadingCollapse(preview, editor) {
         preview.addEventListener("click", event => {
             const link = event.target.closest("a[href^='#']");
             if (link && preview.contains(link)) {
@@ -149,6 +196,7 @@
                     toggle?.setAttribute("aria-label", "Replier le contenu de cette section");
                     if (toggle) toggle.title = "Replier le contenu";
                 }
+                alignHeadings(editor, preview);
                 const stickyHeader = document.querySelector("body > header");
                 const headerOffset = stickyHeader?.getBoundingClientRect().height || 0;
                 heading.style.scrollMarginTop = `${Math.ceil(headerOffset + 12)}px`;
@@ -183,6 +231,7 @@
             toggle.setAttribute("aria-expanded", String(!expanded));
             toggle.setAttribute("aria-label", `${expanded ? "Déplier" : "Replier"} le contenu de cette section`);
             toggle.title = expanded ? "Déplier le contenu" : "Replier le contenu";
+            alignHeadings(editor, preview);
         });
     }
 
