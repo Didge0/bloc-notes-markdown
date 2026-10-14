@@ -384,9 +384,81 @@
         addResult("impression en aperçu seul : l’aperçu est affiché", printedPreviewOnly.preview !== "none");
     }
 
+    async function runHeadingAlignmentTests() {
+        const fixture = document.createElement("div");
+        const editorView = document.createElement("section");
+        const editor = document.createElement("textarea");
+        const preview = document.createElement("div");
+        const button = document.createElement("button");
+        const icon = document.createElement("span");
+        const label = document.createElement("span");
+        fixture.style.cssText = "position:fixed;left:-10000px;top:0;display:flex;align-items:flex-start;width:800px";
+        editorView.className = "editor-view";
+        editorView.style.cssText = "display:flex;align-items:flex-start;width:800px";
+        editor.style.cssText = "box-sizing:border-box;flex:0 0 400px;width:400px;margin:0;padding:0;border:0;font:16px/20px monospace;white-space:pre;overflow:hidden;resize:none";
+        preview.className = "preview-content";
+        preview.id = "preview";
+        preview.style.cssText = "box-sizing:border-box;flex:0 0 400px;width:400px;margin:0;padding:0;font:16px/20px monospace";
+        button.append(icon, label);
+        icon.setAttribute("aria-hidden", "true");
+        label.className = "preview-toggle-label";
+        editorView.append(editor, preview);
+        fixture.append(editorView, button);
+        document.body.append(fixture);
+        const wordCount = document.createElement("div");
+
+        editor.value = ["# Répété", ...Array(12).fill(""), "## Répété", "", "### Troisième"].join("\n");
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        preview.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(heading => {
+            heading.style.cssText = "margin:0;font:16px/20px monospace";
+        });
+        NoteEditorView.alignHeadings(editor, preview);
+        const targetSection = preview.querySelector(".markdown-section[data-line='13']");
+        const targetHeading = targetSection.querySelector("h2");
+        const targetLineTop = editor.getBoundingClientRect().top + 13 * 20;
+        const firstSpacerHeight = Number.parseFloat(targetSection.querySelector(":scope > .markdown-heading-spacer")?.style.height || "0");
+        addResult("aligne les titres homonymes selon leur ligne source", firstSpacerHeight > 0 && Math.abs(targetHeading.getBoundingClientRect().top - targetLineTop) < 1);
+
+        NoteEditorView.alignHeadings(editor, preview);
+        const secondSpacerHeight = Number.parseFloat(targetSection.querySelector(":scope > .markdown-heading-spacer")?.style.height || "0");
+        addResult("recalcule l’espace sans l’accumuler", Math.abs(secondSpacerHeight - firstSpacerHeight) < 1 && preview.querySelectorAll(".markdown-heading-spacer").length === 1);
+
+        const originalScrollY = window.scrollY;
+        NoteEditorView.togglePreviewOnly(editorView, button, editor);
+        addResult("le mode aperçu seul retire les espaces et ne défile pas la page", preview.querySelectorAll(".markdown-heading-spacer").length === 0 && window.scrollY === originalScrollY);
+        NoteEditorView.togglePreviewOnly(editorView, button, editor);
+        addResult("le retour aux deux panneaux recalcule l’alignement", preview.querySelectorAll(".markdown-heading-spacer").length === 1);
+
+        editor.style.whiteSpace = "pre-wrap";
+        editor.value = `# Intro\n[Un lien utile](https://example.com/${"chemin-long-".repeat(32)})\n## Cible`;
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        preview.querySelectorAll("h1, h2, h3, h4, h5, h6").forEach(heading => {
+            heading.style.cssText = "margin:0;font:16px/20px monospace";
+        });
+        preview.querySelectorAll("p").forEach(paragraph => {
+            paragraph.style.cssText = "margin:0;font:16px/20px monospace";
+        });
+        NoteEditorView.clearHeadingAlignment(preview);
+        const naturalPreviewHeight = preview.scrollHeight;
+        NoteEditorView.alignHeadings(editor, preview);
+        const wrappedHeading = preview.querySelector(".markdown-section[data-line='2'] h2");
+        const wrappedSourceTop = editor.getBoundingClientRect().top + editor.scrollHeight - 20;
+        addResult("aligne un titre après une ligne source repliée", editor.scrollHeight > naturalPreviewHeight && Math.abs(wrappedHeading.getBoundingClientRect().top - wrappedSourceTop) < 1);
+
+        editor.value = "# Seul";
+        NoteEditorView.renderMarkdown(editor, preview, wordCount);
+        await NoteEditorView.waitForRender();
+        preview.append(...Array.from({ length: 20 }, () => document.createElement("p")));
+        NoteEditorView.alignHeadings(editor, preview);
+        addResult("ne compense pas quand le contenu de l’aperçu est plus haut", preview.querySelectorAll(".markdown-heading-spacer").length === 0);
+        fixture.remove();
+    }
+
     runMermaidTests().catch(error => {
         addResult(`les tests Mermaid s’exécutent sans exception (${error.message})`, false);
-    }).then(runLayoutTests).catch(error => {
+    }).then(runHeadingAlignmentTests).then(runLayoutTests).catch(error => {
         addResult(`les tests de mise en page s’exécutent sans exception (${error.message})`, false);
     }).finally(() => {
         const totalTests = results.children.length;

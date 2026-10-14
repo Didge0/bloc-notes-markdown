@@ -445,7 +445,10 @@
         renderPreview();
         scheduleAutoSave();
     });
-    window.addEventListener("resize", () => NoteEditorView.resizeEditor(editor));
+    window.addEventListener("resize", () => {
+        NoteEditorView.resizeEditor(editor);
+        NoteEditorView.alignHeadings(editor, preview);
+    });
     document.getElementById("btnBackHome").addEventListener("click", returnHome);
     fileNameInput.addEventListener("change", renameActiveNote);
     fileNameInput.addEventListener("keydown", event => {

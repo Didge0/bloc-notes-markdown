@@ -75,6 +75,7 @@ L’export HTML est autonome : `ui/html-export.js` incorpore donc son CSS dans l
 - Réorganisation des notes par glisser-déposer avec la poignée à six points; déposer en haut ou en bas d’une ligne choisit la position
 - Ordre mémorisé par dossier; les flèches haut/bas déplacent aussi la note au clavier
 - Ouverture d’une note, aperçu en direct et enregistrement automatique dans son fichier
+- Alignement vertical des titres de l’aperçu avec leur ligne dans l’éditeur lorsque celui-ci est plus long; l’aperçu seul reste sans espace ajouté
 - Bouton Retour qui attend l’enregistrement avant de revenir à la liste
 - Suppression d’une note depuis l’accueil après confirmation
 - Création d’une note sans remplacer un fichier du même nom

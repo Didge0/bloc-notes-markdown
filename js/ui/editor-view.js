@@ -1,5 +1,92 @@
 (() => {
     let pendingDiagramRender = Promise.resolve();
+    const alignmentVersions = new WeakMap();
+
+    function clearHeadingAlignment(preview) {
+        if (!preview) return;
+        preview.querySelectorAll(".markdown-heading-spacer").forEach(spacer => spacer.remove());
+    }
+
+    function createEditorMirror(editor) {
+        const style = getComputedStyle(editor);
+        const mirror = document.createElement("div");
+        const copiedProperties = [
+            "font", "fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeight", "letterSpacing",
+            "wordSpacing", "textIndent", "textTransform", "tabSize", "direction", "paddingTop", "paddingRight",
+            "paddingBottom", "paddingLeft", "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth"
+        ];
+        copiedProperties.forEach(property => { mirror.style[property] = style[property]; });
+        mirror.style.position = "fixed";
+        mirror.style.top = `${editor.getBoundingClientRect().top}px`;
+        mirror.style.left = `${editor.getBoundingClientRect().left}px`;
+        mirror.style.width = `${editor.clientWidth}px`;
+        mirror.style.height = "auto";
+        mirror.style.boxSizing = "border-box";
+        mirror.style.visibility = "hidden";
+        mirror.style.pointerEvents = "none";
+        mirror.style.whiteSpace = "pre-wrap";
+        mirror.style.overflowWrap = "break-word";
+        mirror.setAttribute("aria-hidden", "true");
+        const lines = editor.value.split("\n");
+        const lineElements = lines.map(line => {
+            const element = document.createElement("div");
+            element.style.minHeight = style.lineHeight === "normal" ? `${parseFloat(style.fontSize) * 1.2}px` : style.lineHeight;
+            element.style.whiteSpace = "pre-wrap";
+            element.style.overflowWrap = "break-word";
+            element.textContent = line || " ";
+            mirror.append(element);
+            return element;
+        });
+        document.body.append(mirror);
+        return { mirror, lineElements };
+    }
+
+    function naturalPreviewHeight(preview) {
+        const lastContent = [...preview.children].filter(element => !element.classList.contains("markdown-heading-spacer")).at(-1);
+        if (!lastContent) return 0;
+        const previewStyle = getComputedStyle(preview);
+        const contentStyle = getComputedStyle(lastContent);
+        return lastContent.getBoundingClientRect().bottom - preview.getBoundingClientRect().top
+            + parseFloat(previewStyle.paddingBottom)
+            + parseFloat(contentStyle.marginBottom);
+    }
+
+    function alignHeadings(editor, preview) {
+        if (!preview) return;
+        clearHeadingAlignment(preview);
+        if (!editor || !preview || !editor.getClientRects().length || !preview.getClientRects().length
+            || editor.closest(".preview-only") || getComputedStyle(preview).display === "none"
+            || editor.scrollHeight <= naturalPreviewHeight(preview)) return;
+
+        const version = (alignmentVersions.get(preview) || 0) + 1;
+        alignmentVersions.set(preview, version);
+        const { mirror, lineElements } = createEditorMirror(editor);
+        const editorTop = editor.getBoundingClientRect().top;
+        const mirrorTop = mirror.getBoundingClientRect().top;
+        const headings = [...preview.querySelectorAll(".markdown-section[data-line]")]
+            .map(section => ({ section, line: Number(section.dataset.line), heading: section.querySelector(":scope > .markdown-section-heading h1, :scope > .markdown-section-heading h2, :scope > .markdown-section-heading h3, :scope > .markdown-section-heading h4, :scope > .markdown-section-heading h5, :scope > .markdown-section-heading h6") }))
+            .filter(item => item.heading && Number.isInteger(item.line) && lineElements[item.line])
+            .sort((first, second) => first.line - second.line);
+
+        for (const { section, line, heading } of headings) {
+            if (alignmentVersions.get(preview) !== version || editor.closest(".preview-only")) break;
+            const editorLineTop = editorTop + lineElements[line].getBoundingClientRect().top - mirrorTop;
+            const difference = editorLineTop - heading.getBoundingClientRect().top;
+            if (difference <= 1) continue;
+            const spacer = document.createElement("div");
+            spacer.className = "markdown-heading-spacer";
+            spacer.style.height = `${difference}px`;
+            spacer.setAttribute("aria-hidden", "true");
+            section.insertBefore(spacer, section.firstChild);
+            for (let attempt = 0; attempt < 3; attempt += 1) {
+                const correction = editorLineTop - heading.getBoundingClientRect().top;
+                if (Math.abs(correction) <= 1) break;
+                const height = Math.max(0, parseFloat(spacer.style.height) + correction);
+                spacer.style.height = `${height}px`;
+            }
+        }
+        mirror.remove();
+    }
 
     function resizeEditor(editor) {
         if (!editor.getClientRects().length) return;
@@ -11,7 +98,8 @@
         resizeEditor(editor);
         const ast = MarkdownParser.parse(editor.value);
         preview.replaceChildren(MarkdownRenderer.render(ast));
-        pendingDiagramRender = window.NoteMermaidRenderer?.render(preview) || Promise.resolve();
+        const diagramRender = window.NoteMermaidRenderer?.render(preview) || Promise.resolve();
+        pendingDiagramRender = diagramRender.then(() => alignHeadings(editor, preview));
         const words = editor.value.trim().split(/\s+/u).filter(Boolean).length;
         wordCount.textContent = `Mots : ${words}`;
         return pendingDiagramRender;
@@ -108,6 +196,7 @@
         previewToggle.querySelector("[aria-hidden='true']").textContent = "👁";
         previewToggle.querySelector(".preview-toggle-label").textContent = "Aperçu seul";
         resizeEditor(editor);
+        alignHeadings(editor, document.getElementById("preview"));
         editor.focus();
     }
 
@@ -117,11 +206,14 @@
         button.title = previewOnly ? "Revenir au mode édition" : "Afficher l’aperçu seul";
         button.querySelector("[aria-hidden='true']").textContent = previewOnly ? "✎" : "👁";
         button.querySelector(".preview-toggle-label").textContent = previewOnly ? "Mode édition" : "Aperçu seul";
-        if (!previewOnly) {
+        const preview = document.getElementById("preview");
+        if (previewOnly) clearHeadingAlignment(preview);
+        else {
             resizeEditor(editor);
+            alignHeadings(editor, preview);
             editor.focus();
         }
     }
 
-    window.NoteEditorView = { bindHeadingCollapse, bindTaskChanges, renderMarkdown, resizeEditor, showEditor, togglePreviewOnly, waitForRender };
+    window.NoteEditorView = { alignHeadings, bindHeadingCollapse, bindTaskChanges, clearHeadingAlignment, renderMarkdown, resizeEditor, showEditor, togglePreviewOnly, waitForRender };
 })();
