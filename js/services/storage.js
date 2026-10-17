@@ -3,6 +3,7 @@
     const databaseName = "bloc-notes-markdown";
     const directoryKey = "notes-directory";
     const noteOrderKey = "notes-order";
+    const serverKey = "blocNotesServer";
 
     function openDatabase() {
         return new Promise((resolve, reject) => {
@@ -69,6 +70,22 @@
         } catch { return null; }
     }
 
+    // Mode serveur mémorisé : null signifie mode local.
+    function loadServer() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(serverKey));
+            return typeof parsed?.url === "string" && parsed.url ? { url: parsed.url, token: typeof parsed.token === "string" ? parsed.token : "" } : null;
+        } catch { return null; }
+    }
+
+    function saveServer(server) {
+        try {
+            if (server) localStorage.setItem(serverKey, JSON.stringify(server));
+            else localStorage.removeItem(serverKey);
+        } catch { return false; }
+        return true;
+    }
+
     function migrationHandled() {
         try { return localStorage.getItem("blocNotesMigrationHandled") === "true"; }
         catch { return true; }
@@ -83,14 +100,16 @@
     window.NoteStorage = {
         load,
         loadDirectory: () => storeHandle("readonly"),
-        loadNoteOrder: directoryHandle => storeNoteOrder("readonly", directoryHandle),
+        loadNoteOrder: directoryHandle => directoryHandle.remote ? directoryHandle.loadOrder() : storeNoteOrder("readonly", directoryHandle),
+        loadServer,
+        saveServer,
         migrationHandled,
         markMigrationHandled,
         save: note => {
             try { localStorage.setItem(storageKey, JSON.stringify(note)); return true; }
             catch { return false; }
         },
-        saveNoteOrder: (directoryHandle, order) => storeNoteOrder("readwrite", directoryHandle, order),
+        saveNoteOrder: (directoryHandle, order) => directoryHandle.remote ? directoryHandle.saveOrder(order) : storeNoteOrder("readwrite", directoryHandle, order),
         saveDirectory: handle => storeHandle("readwrite", handle)
     };
 })();

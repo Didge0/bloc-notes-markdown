@@ -122,3 +122,43 @@ Ouvrez les deux pages dans `tests/` directement dans le navigateur. Elles testen
 ## Technologies
 
 HTML, CSS et JavaScript natifs, avec Prism.js 1.30.0 et ses grammaires intégrés localement; File System Access API, IndexedDB, File API et Blob API. Aucun outil de compilation ni installation n’est requis. Les scripts sont chargés séparément et dans l’ordre requis afin de garder le lancement direct par `file://`.
+
+## Mode serveur (réseau local)
+
+En plus du mode local, l’application peut utiliser un serveur Node.js (sans dépendance npm) qui expose un dossier de notes sur le réseau de la maison. Ce mode fonctionne dans tous les navigateurs, y compris sur téléphone.
+
+### Lancer le serveur
+
+1. Installez Node.js (version LTS) : `winget install OpenJS.NodeJS.LTS`, puis rouvrez le terminal.
+2. Depuis le dossier du projet, lancez le serveur en indiquant le dossier de notes (obligatoire, il doit déjà exister ; sinon le serveur refuse de démarrer) :
+
+   ```powershell
+   node server/server.js C:\chemin\vers\mes-notes
+   ```
+
+   Le terminal affiche l’adresse et le dossier utilisé. Laissez-le ouvert : `Ctrl+C` arrête le serveur.
+3. Sur le PC serveur, ouvrez `http://localhost:3000`, puis cliquez sur **Se connecter à un serveur** (l’adresse proposée est déjà la bonne).
+4. Pour un autre appareil du réseau, trouvez l’IP du PC avec `ipconfig` (adresse IPv4, par exemple `192.168.1.20`) et ouvrez `http://192.168.1.20:3000`.
+5. Si l’autre appareil n’arrive pas à se connecter, autorisez Node.js dans le pare-feu Windows (réseau privé), ou ajoutez la règle : `New-NetFirewallRule -DisplayName "Bloc-notes" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private` (PowerShell administrateur).
+
+Le choix du serveur est mémorisé par le navigateur. Pour revenir au mode local, cliquez sur **Utiliser un dossier local** (la connexion au serveur est alors oubliée).
+
+### Options (variables d’environnement)
+
+| Variable | Rôle | Défaut |
+|---|---|---|
+| `PORT` | Port d’écoute | `3000` |
+| `HOST` | Interface d’écoute (`127.0.0.1` pour limiter à ce PC) | `0.0.0.0` |
+| `NOTES_DIR` | Dossier de notes (si non passé en argument) | aucun (chemin obligatoire) |
+| `NOTES_TOKEN` | Jeton d’accès ; s’il est défini, le navigateur le demande à la connexion | aucun |
+
+Exemple : `$env:NOTES_TOKEN="monjeton"; $env:PORT=8080; node server/server.js C:\notes`
+
+### Sécurité
+
+Sans `NOTES_TOKEN`, toute personne du réseau local peut lire et modifier les notes : ne l’exposez pas sur Internet. Le serveur ne sert que `index.html`, `css/` et `js/`, et refuse les chemins sortant du dossier de notes ou commençant par un point. L’authentification est centralisée dans la fonction `authorize` de `server/server.js` pour pouvoir être renforcée plus tard.
+
+### Tests du mode serveur
+
+- `node --test tests/server.test.js` : démarre un vrai serveur temporaire et teste l’API (jeton, fichiers, dossiers, ordre, chemins interdits, CORS).
+- `tests/remote.test.html` : ouvrez-le dans le navigateur ; il teste le client (`remote-backend.js` avec `notes-files.js`) contre un faux serveur en mémoire.

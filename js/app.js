@@ -17,6 +17,7 @@
     const createFolderButton = document.getElementById("btnCreateFolder");
     const chooseDirectoryButton = document.getElementById("btnChooseDirectory");
     const changeDirectoryButton = document.getElementById("btnChangeDirectory");
+    const connectServerButton = document.getElementById("btnConnectServer");
     const deleteFolderDialog = document.getElementById("deleteFolderDialog");
     const deleteFolderDialogTitle = document.getElementById("deleteFolderDialogTitle");
     const deleteFolderDialogMessage = document.getElementById("deleteFolderDialogMessage");
@@ -327,7 +328,7 @@
     }
 
     async function migrateLegacyNote() {
-        if (NoteStorage.migrationHandled()) return;
+        if (directoryHandle?.remote || NoteStorage.migrationHandled()) return;
         const legacy = NoteStorage.load();
         if (!legacy?.content.trim()) {
             NoteStorage.markMigrationHandled();
@@ -364,10 +365,43 @@
         directoryHandle = handle;
         savedDirectoryHandle = handle;
         updateDirectoryButtons(true);
-        await NoteStorage.saveDirectory(handle);
+        if (handle.remote) {
+            savedDirectoryHandle = null;
+            updateDirectoryButtons(true);
+            chooseDirectoryButton.textContent = "Utiliser un dossier local";
+            changeDirectoryButton.hidden = true;
+        } else {
+            await NoteStorage.saveDirectory(handle);
+            NoteStorage.saveServer(null);
+        }
         await refreshNotes();
         await migrateLegacyNote();
         await refreshNotes();
+    }
+
+    async function connectServer(saved = null) {
+        let url = saved?.url;
+        let token = saved?.token || "";
+        if (!url) {
+            const fallback = /^https?:$/.test(location.protocol) ? location.origin : "http://";
+            url = window.prompt("Adresse du serveur de notes (ex. http://192.168.1.20:3000) :", fallback)?.trim();
+            if (!url) return;
+        }
+        try {
+            let client;
+            try { client = await RemoteBackend.connect({ baseUrl: url, token }); }
+            catch (error) {
+                if (error.name !== "NotAllowedError") throw error;
+                token = window.prompt("Jeton d?acc?s du serveur :") || "";
+                client = await RemoteBackend.connect({ baseUrl: url, token });
+            }
+            await connectDirectory(client.root, true);
+            NoteStorage.saveServer({ url, token });
+            showStatus("Serveur connect?");
+        } catch (error) {
+            directoryStatus.textContent = error.message || "Connexion au serveur impossible.";
+            showStatus(error.message || "Connexion au serveur impossible.");
+        }
     }
 
     async function chooseDirectory() {
@@ -459,7 +493,8 @@
         }
     });
     togglePreviewButton.addEventListener("click", () => NoteEditorView.togglePreviewOnly(editorView, togglePreviewButton, editor));
-    chooseDirectoryButton.addEventListener("click", chooseDirectory);
+    chooseDirectoryButton.addEventListener("click", () => directoryHandle?.remote ? chooseAnotherDirectory() : chooseDirectory());
+    connectServerButton.addEventListener("click", () => connectServer());
     changeDirectoryButton.addEventListener("click", chooseAnotherDirectory);
     createButton.addEventListener("click", () => createNote());
     createFolderButton.addEventListener("click", createFolder);
@@ -498,6 +533,11 @@
     });
 
     (async () => {
+        const savedServer = NoteStorage.loadServer();
+        if (savedServer) {
+            await connectServer(savedServer);
+            if (directoryHandle) return;
+        }
         if (typeof window.showDirectoryPicker !== "function") {
             directoryStatus.textContent = "Pour afficher les fichiers du dossier notes, utilisez Chrome ou Edge.";
             return;
