@@ -1,0 +1,11 @@
+.git
+.gitignore
+.env
+secrets/
+docker-data/
+notes/
+tests/
+README.md
+CORRECTIONS.md
+*.jsonl
+*.log

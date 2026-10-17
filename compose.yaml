@@ -1,0 +1,44 @@
+services:
+  bloc-notes:
+    build:
+      context: .
+    image: bloc-notes-markdown:local
+    user: "${PUID:-1000}:${PGID:-1000}"
+    init: true
+    restart: unless-stopped
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      NOTES_DIR: "/data/notes"
+      NOTES_TOKEN_FILE: "/run/secrets/notes-token"
+      LOG_DIR: "/data/logs"
+      LOG_MAX_BYTES: "${LOG_MAX_BYTES:-10485760}"
+      LOG_BACKUPS: "${LOG_BACKUPS:-5}"
+    volumes:
+      - ./docker-data/notes:/data/notes
+      - ./docker-data/logs:/data/logs
+      - ./secrets/notes-token:/run/secrets/notes-token:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,1 +1,4 @@
 notes/
+docker-data/
+secrets/
+.env

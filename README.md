@@ -143,6 +143,52 @@ En plus du mode local, l’application peut utiliser un serveur Node.js (sans d�
 
 Le choix du serveur est mémorisé par le navigateur. Lors de la première connexion avec un jeton, la fenêtre de connexion propose de le mémoriser sur cet appareil (option cochée par défaut) pour les prochaines visites. Pour revenir au mode local, cliquez sur **Utiliser un dossier local** (la connexion et le jeton mémorisé sont alors oubliés).
 
+### Déploiement Docker Compose sur Raspberry Pi
+
+Le conteneur utilise l’image officielle Node.js 24 Alpine, fonctionne sans dépendances npm et tourne avec un utilisateur non privilégié. Le Raspberry Pi OS 64 bits est recommandé. Vérifiez l’architecture avec `uname -m` : `aarch64` convient; pour `armv7l` (système 32 bits), ne lancez pas le déploiement avant d’avoir vérifié qu’une image Node compatible est disponible, ou installez un système 64 bits.
+
+Installez Docker Engine et le plugin Docker Compose selon la documentation de votre distribution, puis placez le dépôt sur le Pi. Depuis le dossier du projet, préparez les données, les journaux et un jeton aléatoire qui restera stable entre les redémarrages :
+
+```sh
+mkdir -p docker-data/notes docker-data/logs secrets
+printf 'PUID=%s\nPGID=%s\nBIND_IP=127.0.0.1\nAPP_PORT=3000\n' "$(id -u)" "$(id -g)" > .env
+openssl rand -hex 32 > secrets/notes-token
+chmod 600 .env secrets/notes-token
+```
+
+Le fichier `.env` indique à Compose l’UID/GID du compte Linux courant; le processus dans le conteneur utilisera ces identifiants pour pouvoir lire le jeton et écrire dans les dossiers montés. Utilisez un compte non-root. Le port est limité par défaut à `127.0.0.1` (le Pi uniquement). Pour l’accès depuis le réseau local, réservez une adresse IP au Pi dans le routeur, puis remplacez `BIND_IP` dans `.env` par cette adresse, par exemple `192.168.1.20`. Placez ou copiez vos notes existantes dans `docker-data/notes` avant le premier démarrage.
+
+Construisez et démarrez le service, puis vérifiez son état :
+
+```sh
+docker compose up -d --build
+docker compose ps
+docker compose logs -f bloc-notes
+```
+
+Les notes persistent dans `docker-data/notes`, les journaux applicatifs dans `docker-data/logs`; ils survivent à `docker compose down` et à la recréation du conteneur. Le jeton reste dans `secrets/notes-token`, monté en lecture seule et exclu de l’image et de Git. Gardez ce fichier privé : pour saisir le jeton dans le navigateur, affichez-le localement avec `cat secrets/notes-token`.
+
+Depuis un appareil du réseau local, ouvrez `http://<BIND_IP>:<APP_PORT>` et connectez-vous au serveur avec le jeton. Le port est publié uniquement sur l’adresse `BIND_IP` choisie. Gardez une règle pare-feu limitée au réseau privé et ne créez pas de redirection de port sur le routeur vers Internet.
+
+Pour suivre les journaux applicatifs sur le Pi, utilisez `tail -f docker-data/logs/server.jsonl`; `docker compose logs -f bloc-notes` affiche aussi les événements JSON de la console. Chaque flux est limité : les journaux applicatifs font 10 Mio avec cinq archives par défaut, et le pilote Docker conserve trois fichiers de console de 10 Mio.
+
+Pour mettre à jour l’image, récupérez les changements du dépôt puis reconstruisez et recréez le service :
+
+```sh
+docker compose build --pull
+docker compose up -d
+```
+
+Pour faire une sauvegarde cohérente des notes et des journaux, arrêtez brièvement le service puis archivez les dossiers persistants :
+
+```sh
+docker compose stop
+tar -czf bloc-notes-backup.tar.gz docker-data/notes docker-data/logs
+docker compose start
+```
+
+Conservez le jeton séparément dans un emplacement protégé. Protégez également l’archive : les logs contiennent des adresses IP et des chemins de notes. Pour un accès distant futur, privilégiez d’abord un VPN; n’exposez pas directement ce serveur HTTP sur Internet.
+
 ### Options (variables d’environnement)
 
 | Variable | Rôle | Défaut |
