@@ -13,9 +13,15 @@
             if (response.ok) return response;
             let message = "";
             try { message = (await response.json()).error; } catch { /* corps non JSON */ }
-            if (response.status === 404) throw new DOMException(message || "Introuvable", "NotFoundError");
-            if (response.status === 401) throw new DOMException(message || "Authentification requise", "NotAllowedError");
-            throw new Error(message || `Erreur serveur (${response.status})`);
+            const requestId = response.headers.get("X-Request-Id");
+            const withReference = value => requestId ? `${value} (réf. ${requestId})` : value;
+            if (response.status === 404) throw new DOMException(withReference(message || "Introuvable"), "NotFoundError");
+            if (response.status === 401) throw new DOMException(withReference(message || "Authentification requise"), "NotAllowedError");
+            if (response.status === 429) {
+                const retryAfter = Number(response.headers.get("Retry-After"));
+                throw new Error(withReference(`${message || "Trop de tentatives."}${retryAfter > 0 ? ` Réessayez dans ${retryAfter} secondes.` : ""}`));
+            }
+            throw new Error(withReference(message || `Erreur serveur (${response.status})`));
         }
 
         const join = (parent, name) => parent ? `${parent}/${name}` : name;

@@ -141,7 +141,7 @@ En plus du mode local, l’application peut utiliser un serveur Node.js (sans d�
 4. Pour un autre appareil du réseau, trouvez l’IP du PC avec `ipconfig` (adresse IPv4, par exemple `192.168.1.20`) et ouvrez `http://192.168.1.20:3000`.
 5. Si l’autre appareil n’arrive pas à se connecter, autorisez Node.js dans le pare-feu Windows (réseau privé), ou ajoutez la règle : `New-NetFirewallRule -DisplayName "Bloc-notes" -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private` (PowerShell administrateur).
 
-Le choix du serveur est mémorisé par le navigateur. Pour revenir au mode local, cliquez sur **Utiliser un dossier local** (la connexion au serveur est alors oubliée).
+Le choix du serveur est mémorisé par le navigateur. Lors de la première connexion avec un jeton, la fenêtre de connexion propose de le mémoriser sur cet appareil (option cochée par défaut) pour les prochaines visites. Pour revenir au mode local, cliquez sur **Utiliser un dossier local** (la connexion et le jeton mémorisé sont alors oubliés).
 
 ### Options (variables d’environnement)
 
@@ -150,15 +150,41 @@ Le choix du serveur est mémorisé par le navigateur. Pour revenir au mode local
 | `PORT` | Port d’écoute | `3000` |
 | `HOST` | Interface d’écoute (`127.0.0.1` pour limiter à ce PC) | `0.0.0.0` |
 | `NOTES_DIR` | Dossier de notes (si non passé en argument) | aucun (chemin obligatoire) |
-| `NOTES_TOKEN` | Jeton d’accès ; s’il est défini, le navigateur le demande à la connexion | aucun |
+| `NOTES_TOKEN` | Jeton d’accès (32 caractères minimum si `HOST` n’est pas local) ; le navigateur le demande à la connexion | généré au démarrage |
+| `NOTES_TOKEN_FILE` | Fichier contenant le jeton (prioritaire sur `NOTES_TOKEN`), pour ne pas le laisser dans l’historique du terminal | aucun |
+| `LOG_DIR` | Dossier des journaux JSON Lines | `%USERPROFILE%\.bloc-notes-markdown\logs` sous Windows |
+| `LOG_MAX_BYTES` | Taille maximale d’un fichier de journal avant rotation | `10485760` (10 Mio) |
+| `LOG_BACKUPS` | Nombre de fichiers archivés conservés en plus du journal courant | `5` |
 
 Exemple : `$env:NOTES_TOKEN="monjeton"; $env:PORT=8080; node server/server.js C:\notes`
 
 ### Sécurité
 
-Sans `NOTES_TOKEN`, toute personne du réseau local peut lire et modifier les notes : ne l’exposez pas sur Internet. Le serveur ne sert que `index.html`, `css/` et `js/`, et refuse les chemins sortant du dossier de notes ou commençant par un point. L’authentification est centralisée dans la fonction `authorize` de `server/server.js` pour pouvoir être renforcée plus tard.
+L’API exige toujours un jeton (`Authorization: Bearer ...`), comparé en temps constant. Après cinq erreurs d’authentification depuis une même adresse IP sur une période de 15 minutes, les requêtes de cette adresse sont bloquées pendant 15 minutes; une authentification réussie réinitialise le compteur. Sans `NOTES_TOKEN` ni `NOTES_TOKEN_FILE`, le serveur génère un jeton aléatoire à chaque démarrage et l’affiche dans le terminal. Pour un jeton durable, générez-le avec `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, enregistrez-le dans un fichier et lancez `$env:NOTES_TOKEN_FILE="C:\chemin\jeton.txt"`. En HTTP le jeton circule en clair : n’exposez pas le serveur sur Internet (utilisez un VPN ou HTTPS).
+
+Si vous acceptez de mémoriser le jeton, il est conservé dans le `localStorage` du navigateur pour se reconnecter automatiquement. Toute personne ayant accès au profil de ce navigateur, ainsi qu’un script malveillant exécuté sur la même origine, pourrait y accéder. Ne mémorisez le jeton que sur un appareil de confiance; **Utiliser un dossier local** l’efface. Le serveur ne sert que `index.html`, `css/` et `js/`, et refuse les chemins sortant du dossier de notes ou commençant par un point.
+
+### Journaux du serveur
+
+Le serveur écrit des événements structurés au format JSON Lines, un objet JSON par ligne, à la fois dans la console et dans `server.jsonl`. Par défaut, le fichier est dans `%USERPROFILE%\.bloc-notes-markdown\logs` sous Windows; les journaux tournent à 10 Mio et cinq archives sont conservées. Chaque requête comprend notamment un identifiant, la date UTC, l’adresse IP, l’agent utilisateur, l’action, le chemin relatif, le résultat HTTP et la durée. Les jetons et le contenu des notes ne sont pas journalisés. L’adresse IP et les noms/chemins des notes restent des données privées : protégez le dossier des journaux.
+
+Les événements principaux sont `server.started`, `http.request.completed`, `server.stopping` et `logging.file_write_failed`. Une requête terminée contient aussi `authentication` (`success`, `failed`, `blocked` ou `not_required`) et son `request_id`, également renvoyé dans l’en-tête HTTP `X-Request-Id`. Avec le jeton partagé actuel, le serveur identifie l’adresse IP et l’agent utilisateur du client, pas la personne derrière l’appareil.
+
+Exemple d’événement :
+
+```json
+{"timestamp":"2026-10-17T19:48:22.322Z","level":"info","event":"http.request.completed","request_id":"fc4b5cad-5045-4ce6-a2c0-2298818212d7","client_ip":"192.168.1.42","user_agent":"Mozilla/5.0","method":"PUT","action":"note.write","resource_path":"Projet.md","authentication":"success","status":204,"outcome":"success","duration_ms":6}
+```
+
+Pour lire les événements depuis PowerShell :
+
+```powershell
+Get-Content "$env:USERPROFILE\.bloc-notes-markdown\logs\server.jsonl" |
+    ForEach-Object { $_ | ConvertFrom-Json } |
+    Format-Table timestamp, event, client_ip, action, resource_path, status, duration_ms
+```
 
 ### Tests du mode serveur
 
-- `node --test tests/server.test.js` : démarre un vrai serveur temporaire et teste l’API (jeton, fichiers, dossiers, ordre, chemins interdits, CORS).
+- `node --test tests/js/server.test.js` : démarre un vrai serveur temporaire et teste l’API (jeton, limitation des tentatives, journaux JSONL et rotation, fichiers, dossiers, ordre, chemins interdits, CORS).
 - `tests/remote.test.html` : ouvrez-le dans le navigateur ; il teste le client (`remote-backend.js` avec `notes-files.js`) contre un faux serveur en mémoire.

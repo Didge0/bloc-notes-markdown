@@ -81,6 +81,11 @@
     try { await root.getFileHandle("absent.md"); } catch (error) { missingRejected = error.name === "NotFoundError"; }
     checks.push(["signale un fichier absent par NotFoundError", missingRejected]);
 
+    let rateLimited = false;
+    window.fetch = async () => new Response(JSON.stringify({ error: "Trop de tentatives." }), { status: 429, headers: { "Retry-After": "30" } });
+    try { await root.getFileHandle("x.md"); } catch (error) { rateLimited = /30 secondes/.test(error.message); }
+    checks.push(["indique le délai après trop de tentatives", rateLimited]);
+
     let unreachable = false;
     window.fetch = async () => { throw new TypeError("network"); };
     try { await root.getFileHandle("x.md"); } catch (error) { unreachable = /injoignable/i.test(error.message); }

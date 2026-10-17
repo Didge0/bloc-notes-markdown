@@ -88,6 +88,23 @@
         </div>
     </dialog>
 
+    <dialog id="serverTokenDialog" aria-labelledby="serverTokenDialogTitle" aria-describedby="serverTokenDialogDescription">
+        <form id="serverTokenForm" method="dialog" class="folder-delete-dialog">
+            <h2 id="serverTokenDialogTitle">Jeton du serveur</h2>
+            <p id="serverTokenDialogDescription">Saisissez le jeton d’accès fourni par la personne qui a lancé le serveur.</p>
+            <label class="server-token-field" for="serverTokenInput">Jeton</label>
+            <input id="serverTokenInput" type="password" autocomplete="current-password" required>
+            <label class="server-token-remember">
+                <input id="rememberServerToken" type="checkbox" checked>
+                Mémoriser le jeton sur cet appareil
+            </label>
+            <div class="folder-delete-actions">
+                <button class="btn btn-primary" type="submit" value="connect">Se connecter</button>
+                <button class="btn btn-secondary" type="submit" value="cancel" formnovalidate>Annuler</button>
+            </div>
+        </form>
+    </dialog>
+
     <script src="js/core/markdown/parser.js"></script>
     <script src="js/vendor/prism/prism-core.js"></script>
     <script src="js/vendor/prism/prism-clike.js"></script>
@@ -113,4 +130,3 @@
     <script src="js/app.js"></script>
 </body>
 </html>
-

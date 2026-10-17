@@ -156,7 +156,8 @@ header h1 { margin-right: auto; color: var(--color-primary); font-size: 1.8rem; 
 .folder-delete:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 .btn-danger { border-color: var(--color-danger-button); background: var(--color-danger-button); color: var(--color-white); }
 .btn-danger:hover { background: var(--color-danger-button-hover); }
-#deleteFolderDialog {
+#deleteFolderDialog,
+#serverTokenDialog {
     max-height: calc(100% - 2rem);
     width: min(32rem, calc(100% - 2rem));
     max-width: none;
@@ -168,13 +169,17 @@ header h1 { margin-right: auto; color: var(--color-primary); font-size: 1.8rem; 
     box-shadow: var(--shadow);
     color: var(--color-text);
 }
-#deleteFolderDialog::backdrop { background: rgba(25, 20, 20, .48); }
+#deleteFolderDialog::backdrop,
+#serverTokenDialog::backdrop { background: rgba(25, 20, 20, .48); }
 .folder-delete-dialog { padding: 1.5rem; }
 .folder-delete-dialog h2 { margin-bottom: .75rem; color: var(--color-primary); font-size: 1.25rem; }
 .folder-delete-dialog p { line-height: 1.5; }
 .folder-delete-dialog #deleteFolderDialogFeedback { margin-top: .75rem; color: var(--color-danger); }
 .folder-delete-actions { display: grid; gap: .55rem; margin-top: 1.25rem; }
 .folder-delete-actions .btn { width: 100%; text-align: left; }
+.server-token-field { display: block; margin-top: 1rem; font-weight: 600; }
+#serverTokenInput { width: 100%; margin-top: .35rem; padding: .6rem; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-surface); color: var(--color-text); }
+.server-token-remember { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
 .note-row { display: flex; align-items: center; gap: .75rem; padding-left: calc(var(--folder-depth, 0) * 1.25rem); }
 .note-drag-handle {
     display: grid;

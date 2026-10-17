@@ -379,9 +379,26 @@
         await refreshNotes();
     }
 
+    function requestServerToken() {
+        const dialog = document.getElementById("serverTokenDialog");
+        const form = document.getElementById("serverTokenForm");
+        const input = document.getElementById("serverTokenInput");
+        const remember = document.getElementById("rememberServerToken");
+        input.value = "";
+        remember.checked = true;
+        return new Promise(resolve => {
+            dialog.addEventListener("close", () => {
+                resolve(dialog.returnValue === "connect" ? { token: input.value, remember: remember.checked } : null);
+            }, { once: true });
+            dialog.showModal();
+            input.focus();
+        });
+    }
+
     async function connectServer(saved = null) {
         let url = saved?.url;
         let token = saved?.token || "";
+        let rememberToken = Boolean(token);
         if (!url) {
             const fallback = /^https?:$/.test(location.protocol) ? location.origin : "http://";
             url = window.prompt("Adresse du serveur de notes (ex. http://192.168.1.20:3000) :", fallback)?.trim();
@@ -392,12 +409,19 @@
             try { client = await RemoteBackend.connect({ baseUrl: url, token }); }
             catch (error) {
                 if (error.name !== "NotAllowedError") throw error;
-                token = window.prompt("Jeton d?acc?s du serveur :") || "";
-                client = await RemoteBackend.connect({ baseUrl: url, token });
+                const credentials = await requestServerToken();
+                if (!credentials) throw error;
+                token = credentials.token;
+                rememberToken = credentials.remember;
+                try { client = await RemoteBackend.connect({ baseUrl: url, token }); }
+                catch (retryError) {
+                    if (retryError.name === "NotAllowedError") NoteStorage.saveServer({ url, token: "" });
+                    throw retryError;
+                }
             }
             await connectDirectory(client.root, true);
-            NoteStorage.saveServer({ url, token });
-            showStatus("Serveur connect?");
+            const saved = NoteStorage.saveServer({ url, token: rememberToken ? token : "" });
+            showStatus(saved ? "Serveur connecté" : "Serveur connecté, mais le navigateur n’a pas pu mémoriser la connexion.");
         } catch (error) {
             directoryStatus.textContent = error.message || "Connexion au serveur impossible.";
             showStatus(error.message || "Connexion au serveur impossible.");
