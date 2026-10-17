@@ -151,12 +151,12 @@ Installez Docker Engine et le plugin Docker Compose selon la documentation de vo
 
 ```sh
 mkdir -p docker-data/notes docker-data/logs secrets
-printf 'PUID=%s\nPGID=%s\nBIND_IP=127.0.0.1\nAPP_PORT=3000\n' "$(id -u)" "$(id -g)" > .env
+printf 'PUID=%s\nPGID=%s\nBIND_IP=127.0.0.1\nAPP_PORT=3000\nTAILSCALE_IP=127.0.0.2\n' "$(id -u)" "$(id -g)" > .env
 openssl rand -hex 32 > secrets/notes-token
 chmod 600 .env secrets/notes-token
 ```
 
-Le fichier `.env` indique à Compose l’UID/GID du compte Linux courant; le processus dans le conteneur utilisera ces identifiants pour pouvoir lire le jeton et écrire dans les dossiers montés. Utilisez un compte non-root. Le port est limité par défaut à `127.0.0.1` (le Pi uniquement). Pour l’accès depuis le réseau local, réservez une adresse IP au Pi dans le routeur, puis remplacez `BIND_IP` dans `.env` par cette adresse, par exemple `192.168.1.20`. Placez ou copiez vos notes existantes dans `docker-data/notes` avant le premier démarrage.
+Le fichier `.env` indique à Compose l’UID/GID du compte Linux courant; le processus dans le conteneur utilisera ces identifiants pour pouvoir lire le jeton et écrire dans les dossiers montés. Utilisez un compte non-root. Le port est publié séparément sur `BIND_IP` et `TAILSCALE_IP`, avec le même port hôte `APP_PORT`. Par défaut, les deux adresses sont des adresses loopback. Pour l’accès depuis le réseau local, réservez une adresse IP au Pi dans le routeur, puis remplacez `BIND_IP` dans `.env` par cette adresse, par exemple `192.168.1.20`. Pour l’accès Tailscale, réglez `TAILSCALE_IP` sur l’adresse Tailscale du Pi (`tailscale ip -4`). Si Tailscale n’est pas utilisé, laissez sa valeur par défaut `127.0.0.2`, qui reste une adresse loopback. Placez ou copiez vos notes existantes dans `docker-data/notes` avant le premier démarrage.
 
 Construisez et démarrez le service, puis vérifiez son état :
 
@@ -168,7 +168,7 @@ docker compose logs -f bloc-notes
 
 Les notes persistent dans `docker-data/notes`, les journaux applicatifs dans `docker-data/logs`; ils survivent à `docker compose down` et à la recréation du conteneur. Le jeton reste dans `secrets/notes-token`, monté en lecture seule et exclu de l’image et de Git. Gardez ce fichier privé : pour saisir le jeton dans le navigateur, affichez-le localement avec `cat secrets/notes-token`.
 
-Depuis un appareil du réseau local, ouvrez `http://<BIND_IP>:<APP_PORT>` et connectez-vous au serveur avec le jeton. Le port est publié uniquement sur l’adresse `BIND_IP` choisie. Gardez une règle pare-feu limitée au réseau privé et ne créez pas de redirection de port sur le routeur vers Internet.
+Depuis un appareil du réseau local, ouvrez `http://<BIND_IP>:<APP_PORT>`; depuis un appareil du même tailnet, ouvrez `http://<TAILSCALE_IP>:<APP_PORT>`. Les deux URL utilisent le même port, publié uniquement sur chacune des adresses configurées. Connectez-vous au serveur avec le jeton. Gardez une règle pare-feu limitée au réseau privé et ne créez pas de redirection de port sur le routeur vers Internet.
 
 Pour suivre les journaux applicatifs sur le Pi, utilisez `tail -f docker-data/logs/server.jsonl`; `docker compose logs -f bloc-notes` affiche aussi les événements JSON de la console. Chaque flux est limité : les journaux applicatifs font 10 Mio avec cinq archives par défaut, et le pilote Docker conserve trois fichiers de console de 10 Mio.
 
